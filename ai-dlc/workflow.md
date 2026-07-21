@@ -301,6 +301,8 @@ All subsequent rule detail file references in this document (e.g., `common/proce
 
 **Note**: Each unit is completed fully (design + code) before moving to the next unit.
 
+**Parallel mode**: If the `parallel-construction` extension is enabled in `aidlc-docs/aidlc-state.md` AND its preconditions hold (git repository, units on distinct code paths), CONSTRUCTION follows the wave-based flow in `extensions/parallel/parallel-construction/parallel-construction.md` (PC-04–PC-08) instead of the sequential per-unit loop below: units in the same dependency wave are designed, planned, and implemented concurrently in isolated worktrees, approval gates are batched per wave, and the orchestrator merges each wave in dependency order. The per-stage rule files (functional-design.md, code-generation.md, …) still govern each unit. If the extension is disabled or its preconditions fail, use the sequential loop below.
+
 ---
 
 ## Per-Unit Loop (Executes for Each Unit)
