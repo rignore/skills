@@ -12,7 +12,7 @@
 ## Step 1: Analyze Testing Requirements
 
 Analyze the project to determine appropriate testing strategy:
-- **Unit tests**: Already generated per unit during code generation
+- **Unit tests**: Already generated per unit during code generation (if the TDD extension is enabled, they were also already run and confirmed passing during Code Generation — re-run them here as a regression gate rather than authoring them now; see `extensions/testing/tdd/tdd.md` TDD-07)
 - **Integration tests**: Test interactions between units/services
 - **Performance tests**: Load, stress, and scalability testing
 - **End-to-end tests**: Complete user workflows
