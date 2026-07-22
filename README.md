@@ -8,6 +8,14 @@ Claude Code 스킬(`SKILL.md`) 모음. 특정 회사·제품에 결합되지 않
 | [`ai-dlc/`](ai-dlc/) | PRD + 화면 사양을 자동 인테이크해 유저스토리 → 설계 → 코드 생성·빌드·테스트 (AWS AI-DLC 방법론) | `/ai-dlc` |
 | [`loop-harness/`](loop-harness/) | 정답표 + 기계 판정이 있는 수치 지표를 라운드 단위로 반복 개선하는 하네스 | "loop 하네스" / "검증 루프" |
 | [`ux-researcher/`](ux-researcher/) | 렌더된 화면·유저플로우를 관찰해 UX 개선점을 찾되, 발견과 판정을 분리해 LLM 오탐을 억제하는 리뷰 하네스 | "UX 검토" / "유저플로우 봐줘" |
+| [`bizplan-builder/`](bizplan-builder/) | B2B SaaS·AI 에이전트·IIoT 신사업 사업계획서를 4개 Phase로 나누어 VC·컨설팅 펌 수준의 전문가 페르소나와 정량 가드레일로 검증하며 작성 | "사업계획서 작성" / "BP 만들어" |
+| [`rnd-proposal-reviewer/`](rnd-proposal-reviewer/) | 정부 R&D 지원사업 제안서를 7인 전문가 페르소나로 검토해 고득점·Auto-fail 방지를 돕는 4단계 Fail-Safe 워크플로우 | "R&D 사업계획서 검토" / "IRIS 제안서" |
+| [`editorial-reviewer/`](editorial-reviewer/) | 문서의 가독성·용어 일관성·논리 흐름·인용 사실을 검토(전략·기능 타당성이 아닌 "잘 쓰여졌는가") | "가독성 검토" / "문서 리뷰" |
+| [`meeting-minutes-writer/`](meeting-minutes-writer/) | STT 변환 텍스트에서 STT 오변환을 맥락으로 보정해 회의록을 작성 | "회의록 작성" / "STT 파일로 회의록" |
+| [`paper-easy-reader/`](paper-easy-reader/) | 영어 학술 논문을 전문 용어는 보존하고 문장 구조만 쉬운 한국어로 변환 | "논문 번역해줘" / "쉽게 읽히게" |
+| [`handoff-writer/`](handoff-writer/) | 진행 중인 작업을 다른 세션이 이어받도록 핸드오프 문서로 정리 | "핸드오프 문서 작성" / "세션 넘길 수 있게" |
+| [`skill-improver/`](skill-improver/) | 세션 대화를 분석해 어떤 스킬이 쓰였는지 파악하고 트리거·품질 개선안을 제시 | "스킬 개선" / "이번 세션 스킬 어땠어" |
+| [`codex-delegate/`](codex-delegate/) | 설계는 Claude가, 실행은 Codex CLI가 맡고 이중 교차검증을 거치는 로컬 위임 파이프라인 | "codex로 실행" / "코덱스한테 위임" |
 
 ## prd-flow — 아이디어에서 코드까지
 
