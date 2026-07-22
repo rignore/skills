@@ -76,8 +76,8 @@ bizplan/{business-slug}/
 
 ```json
 {
-  "business_slug": "protect-go-saas",
-  "business_name": "Protect GO AI",
+  "business_slug": "siteguard-ai",
+  "business_name": "SiteGuard AI",
   "business_type": "AI 에이전트",
   "stage": "Series A",
   "purpose": "IR",
