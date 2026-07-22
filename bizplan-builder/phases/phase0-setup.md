@@ -35,7 +35,7 @@
 
 6가지 답변을 모두 받은 직후, Notion 사용 여부와 무관하게 수행한다.
 
-1. 사업/제품명에서 `business-slug`를 도출한다 (영문 소문자·하이픈, 예: "Protect GO AI" → `protect-go-saas`). 도출한 슬러그를 사용자에게 1줄로 고지한다.
+1. 사업/제품명에서 `business-slug`를 도출한다 (영문 소문자·하이픈, 예: "SiteGuard AI" → `siteguard-ai`). 도출한 슬러그를 사용자에게 1줄로 고지한다.
 2. `./bizplan/{business-slug}/` 디렉토리를 생성한다 (하위: `research/`, `phase1/`~`phase4/`).
 3. `context.json`을 SKILL.md의 스키마대로 작성한다. 6가지 답변이 그대로 필드에 매핑된다 (`business_type`, `stage`, `purpose`, `stakeholders`, `notion_upload`).
 4. `decision-log.md`·`review-log.md`를 빈 골격으로 생성한다.
@@ -52,7 +52,7 @@ context.json 작성 후, `notion_upload: true`인 경우에만 Notion MCP를 사
 [사업명] 사업계획서 — [사업 유형] / [단계]
 ```
 
-예: `Protect GO AI 사업계획서 — AI 에이전트 / Series A`
+예: `SiteGuard AI 사업계획서 — AI 에이전트 / Series A`
 
 ### 페이지 프로퍼티
 

@@ -9,9 +9,9 @@
 ```
 
 예시:
-- `Protect GO AI 사업계획서 — AI 에이전트 / Series A`
-- `K-water Yeongju Dam 사업계획서 — IIoT / Pre-seed`
-- `Eureka Project 사업계획서 — 하이브리드 / Seed`
+- `SiteGuard AI 사업계획서 — AI 에이전트 / Series A`
+- `AquaWatch 정수장 사업계획서 — IIoT / Pre-seed`
+- `FactoryEye 사업계획서 — 하이브리드 / Seed`
 
 ## 페이지 프로퍼티
 
