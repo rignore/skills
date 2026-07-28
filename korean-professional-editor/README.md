@@ -61,12 +61,14 @@ korean-professional-editor/
 ├── SKILL.md
 ├── README.md
 └── references/
+    ├── README.md
     ├── source-map.md
     ├── korean-naturalness-patterns.md
     ├── document-type-playbook.md
     ├── voice-calibration.md
     ├── rewrite-examples.md
-    └── quality-rubric.md
+    ├── quality-rubric.md
+    └── eval-cases.md
 ```
 
 ## 가드레일
