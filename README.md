@@ -11,6 +11,7 @@ Claude Code 스킬(`SKILL.md`) 모음. 특정 회사·제품에 결합되지 않
 | [`bizplan-builder/`](bizplan-builder/) | B2B SaaS·AI 에이전트·IIoT 신사업 사업계획서를 4개 Phase로 나누어 VC·컨설팅 펌 수준의 전문가 페르소나와 정량 가드레일로 검증하며 작성 | "사업계획서 작성" / "BP 만들어" |
 | [`rnd-proposal-reviewer/`](rnd-proposal-reviewer/) | 정부 R&D 지원사업 제안서를 7인 전문가 페르소나로 검토해 고득점·Auto-fail 방지를 돕는 4단계 Fail-Safe 워크플로우 | "R&D 사업계획서 검토" / "IRIS 제안서" |
 | [`editorial-reviewer/`](editorial-reviewer/) | 문서의 가독성·용어 일관성·논리 흐름·인용 사실을 검토(전략·기능 타당성이 아닌 "잘 쓰여졌는가") | "가독성 검토" / "문서 리뷰" |
+| [`korean-professional-editor/`](korean-professional-editor/) | 이력서·경력기술서·포트폴리오·IR·제품·브랜드 소개 문구의 AI·번역투를 걷어내고 한국 비즈니스 문체에 맞는 최종 문장으로 재작성 | "AI 티 빼줘" / "이력서·포트폴리오 자연스럽게" |
 | [`meeting-minutes-writer/`](meeting-minutes-writer/) | STT 변환 텍스트에서 STT 오변환을 맥락으로 보정해 회의록을 작성 | "회의록 작성" / "STT 파일로 회의록" |
 | [`paper-easy-reader/`](paper-easy-reader/) | 영어 학술 논문을 전문 용어는 보존하고 문장 구조만 쉬운 한국어로 변환 | "논문 번역해줘" / "쉽게 읽히게" |
 | [`handoff-writer/`](handoff-writer/) | 진행 중인 작업을 다른 세션이 이어받도록 핸드오프 문서로 정리 | "핸드오프 문서 작성" / "세션 넘길 수 있게" |
