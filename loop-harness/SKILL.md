@@ -100,12 +100,13 @@ description: >
 
 ## 7. 프로젝트 preset 목록
 
+기본 배포본에는 preset이 포함되지 않는다. preset은 특정 프로젝트에 하네스를 적용할 때 판정 항목·상태 파일 위치·운영 주의를 미리 담아 Phase P를 줄여주는 문서이므로, 쓰는 쪽에서 자기 프로젝트에 맞게 만든다.
+
+새 preset은 Phase P의 산출물(`harness-plan.md`)을 요약해 같은 구조(하네스 매핑·정답표 요약·실행 계획·운영 주의·상태 파일 위치·종료 조건)로 `references/`에 두고 아래 표에 등록한다.
+
 | preset | 대상 | reference |
 |---|---|---|
-| 시뮬레이터 물리 모델 통계 검증 | 물리 기반 시뮬레이터가 생성한 합성 데이터, 26개 판정 항목(결정론) | `references/simulator-stat-verify.md` |
-| LLM 프롬프트/스킬 정책 준수율 평가 | 산출물을 생성하는 프롬프트/스킬 자체가 solver, 정책 준수율 지표(집중 모드) | `references/prompt-policy-compliance.md` |
-
-새 preset은 Phase P의 산출물(`harness-plan.md`)을 요약해 같은 구조(하네스 매핑·정답표 요약·실행 계획·운영 주의·상태 파일 위치·종료 조건)로 `references/`에 두고 이 표에 등록한다.
+| (등록된 preset 없음) | | |
 
 ## 8. 하네스 단순화 재검토
 
