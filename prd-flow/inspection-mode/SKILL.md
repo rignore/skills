@@ -32,6 +32,19 @@ React 프로토타입 화면에 두 가지 기능을 주입한다.
    - "활성화": DescTooltip + 챗봇 패널 주입 (Phase 6~9 실행)
    - "비활성화": DescTooltip만 주입 (Phase 6~9 스킵)
    - 기본값: **활성화**
+7. **챗봇 LLM 프로바이더와 실행 위치** (챗봇 활성 시):
+   - 두 가지 중에서 고른다. **`local`** = 자체 호스팅 LLM 서버(OpenAI 호환 엔드포인트를 제공하는 vLLM·Ollama 등), **`api`** = 상용 LLM API. 둘 다 요청 스키마가 같아 코드는 하나이고 base URL·키·모델명만 갈린다.
+   - `local`은 PRD·정책·desc 전문이 외부로 나가지 않고 호출 비용도 없지만, **LLM 서버가 있는 네트워크 안에서만** 도달한다. 사용자에게 **누가 어디서 이 프로토타입을 열 것인지**를 확인하고 아래로 결정한다.
+
+   | 열람 위치 | 프로바이더 | 프로토타입 실행 방식 |
+   |---|---|---|
+   | 작성자 본인 (LLM 서버와 같은 네트워크) | `local` | `npm run dev` + Vite dev proxy |
+   | 내부망 팀원 여러 명 | `local` | 내부망 주소로 호스팅(프록시 동봉) |
+   | 사외(클라이언트·외부 검토자) | `api` | 기존 Vercel 배포 그대로 |
+
+   - 자체 호스팅 서버가 사설 IP에 떠 있으면 **외부 클라우드(Vercel) 배포본에서는 도달할 수 없다** — 이 조합은 챗봇이 응답하지 못한다.
+   - 조직 내부 서버의 실제 주소·모델 목록·운영 절차는 `references/local-llm.local.md`(있으면)에서 읽는다. **이 파일은 git 배포 제외 대상**이므로 그 내용을 SKILL.md·chatbot-architecture.md 등 다른 스킬 파일로 옮겨 적지 않는다. 파일이 없으면 사용자에게 서버 정보를 확인하거나 `api`로 진행한다.
+   - 상세 제약과 코드는 [chatbot-architecture.md](references/chatbot-architecture.md) §0·§1·§5-b.
 
 ---
 
@@ -1544,11 +1557,12 @@ Phase 0에서 챗봇 모드를 비활성화했다면 Phase 6~9를 스킵한다.
 
 | 결정 | 내용 | 근거 |
 |------|------|------|
-| API | OpenAI **Chat Completions**(스트리밍 + tool calling). Responses API 아님 | 프로토타입 변경 리스크 최소화. stateful 이점은 클라이언트 영속성으로 대체 |
-| 컨텍스트 라우팅 | **폐기**. regex `intentClassifier` 제거 → 전부 주입 | 75k 토큰 이하 코퍼스에선 라우팅 오분기가 정보 누락 순손실 |
+| LLM 프로바이더 | **선택식** — `local`(자체 호스팅 LLM 서버) 또는 `api`(상용 LLM API). Phase 0-7에서 결정 | `local`은 PRD·정책·desc 전문의 외부 전송을 없애고 비용도 없앤다. `api`는 네트워크 제약 없이 어디서나 열린다 |
+| API | **Chat Completions**(스트리밍 + tool calling). Responses API 아님 | 자체 호스팅 서버도 이 스키마를 그대로 지원 → 프로바이더를 바꿔도 코드는 base URL·키·모델명만 달라진다 |
+| 컨텍스트 라우팅 | **폐기**. regex `intentClassifier` 제거 → 전부 주입 | 예산 이하 코퍼스에선 라우팅 오분기가 정보 누락 순손실 |
 | 신뢰성 | grounding 프롬프트 + citation `[§id]` | 컨텍스트 그라운딩만으로 hallucination 30~50%↓ |
 | 텍스트 수정 | `propose_edit` 도구 → diff → **기존 saveBody 재사용** | desc 편집 인프라(Phase 5-e)가 이미 백엔드 |
-| 키 보안 | 외부 공유 시 `api/chat.js` 프록시 | `VITE_` 키는 빌드 시 번들에 평문 인라인 |
+| 키 보안 | 프로바이더 무관 `api/chat.js` 프록시(로컬 dev는 Vite proxy) | `VITE_` 키는 빌드 시 번들에 평문 인라인. 브라우저에서 사설 IP 직접 호출은 mixed content로 차단 |
 
 ### 6-2. 컨텍스트 레이어 구조
 
@@ -1563,7 +1577,7 @@ Phase 0에서 챗봇 모드를 비활성화했다면 Phase 6~9를 스킵한다.
 | Layer 4 | `changelog.md` | 설계 이력·결정 사유 | 대화 이력 수작업 |
 | Layer 5 | `descs/data.json` | 실제 desc·로직 정책 **본문** | 런타임 직렬화(자동, 코드가 처리) |
 
-이전 설계는 의도별 조건부 포함이었으나, 라우팅 폐기로 **모든 레이어를 항상 포함**한다. 조립 결과가 75k 토큰을 넘으면 레이어 파일을 핵심 섹션만 남겨 축약하고, 100k 초과 시에만 client-side RAG를 검토한다(통상 규모에선 불필요).
+이전 설계는 의도별 조건부 포함이었으나, 라우팅 폐기로 **모든 레이어를 항상 포함**한다. 조립 결과가 컨텍스트 예산을 넘으면 레이어 파일을 핵심 섹션만 남겨 축약한다. 예산은 **선택한 모델의 컨텍스트 상한에서 답변 출력분과 대화 히스토리 여유를 뺀 값**으로 잡는다(상용 API 모델은 통상 75k로 충분하고, 자체 호스팅 모델은 상한이 좁은 경우가 많다 — 예: 상한 65k면 예산 48k). 축약 여지가 없을 때만 client-side RAG를 검토한다(통상 규모에선 불필요).
 
 ### 6-3. grounding·citation 정책
 
@@ -1625,28 +1639,46 @@ flowchart LR
 - **추천 질문**: 빈 상태에 화면 맥락 질문 3~4개를 클릭 버튼으로. 빈 캔버스 마비 방지 + 능력 신호.
 - **포커스 본문 직접 주입**: `focusedNum`의 desc body를 system prompt에 직접 넣는다(id 문자열만 넣지 않는다).
 - **접근성**: 메시지 영역 `role="log"` + `aria-live="polite"`.
+- **[`local` 프로바이더] 조치 가능한 오류 안내**: 자체 호스팅 서버는 요청한 모델이 메모리에 적재돼 있지 않으면 자동 교체 없이 503을 반환하는 구성이 많다. 이때 "오류: HTTP 503" 같은 원문을 그대로 노출하지 않고, **무엇을 하면 되는지**를 문장으로 띄운다 — 모델명, 관리 콘솔 주소(`CHAT_DASHBOARD_URL`이 있으면), 모델 기동 후 재질문 안내. 인증 실패(401)와 네트워크 미접속(연결 불가)도 각각 구분해 안내한다. 구현: [chatbot-architecture.md](references/chatbot-architecture.md) §5·§6.
 
 ---
 
-## Phase 9 — 모델·보안·의존성
+## Phase 9 — 프로바이더·모델·보안·의존성
+
+### 9-0. 프로바이더 배선
+
+Phase 0-7에서 정한 프로바이더를 코드에 배선한다. 두 경로는 요청 스키마가 같으므로 **base URL·키·모델명 세 가지만 갈린다**.
+
+| 항목 | `local`(자체 호스팅 LLM 서버) | `api`(상용 LLM API) |
+|---|---|---|
+| `CHAT_API_BASE_URL` | 서버의 OpenAI 호환 엔드포인트 (`http://<host>:<port>/v1`) | `https://api.openai.com/v1` |
+| `CHAT_API_KEY` | 서버에 설정된 API 키 | 공급자 발급 키 |
+| `CHAT_DASHBOARD_URL` | 관리 콘솔 주소(있으면). 503 안내에 노출 | 미사용 |
+| 프록시 실행 주체 | 로컬 dev는 Vite dev proxy / 내부망 호스팅은 그 서버 | Vercel 서버리스 함수 |
+
+🔴 **자체 호스팅 서버가 사설 IP에 있으면 외부 클라우드 배포본(Vercel 등)에서 동작하지 않는다.** ① 클라우드 런타임에서 사설망으로 라우팅되지 않고, ② 브라우저 직접 호출은 HTTPS 페이지의 mixed content 차단과 Private Network Access 정책에 걸린다. 서버 네트워크 밖에서 열 프로토타입이면 프로바이더를 `api`로 두거나, LLM 서버를 공인 도메인·TLS로 노출하는 인프라 작업을 선행한다(보안 담당자 승인 필요).
 
 ### 9-1. 모델
 
 - `src/lib/chatConfig.ts`의 `CHAT_MODEL` **단일 상수**로 관리. 코드 곳곳 하드코딩 금지.
-- 모델 회전 주기가 빠르므로 **배포 시점에 platform.openai.com/docs/models에서 최신 OpenAI 모델을 확인**하고 상수만 교체한다. `gpt-4o`는 구형일 수 있다.
+- **컨텍스트 상한이 조립 결과(통상 15~48k)를 담을 수 있는 모델을 고른다.** 상한이 좁으면 `CONTEXT_TOKEN_BUDGET`을 그에 맞춰 낮추고 레이어 파일을 축약한다.
+- **추론 특화 모델(reasoning model)은 쓰지 않는다.** 사고 과정 텍스트가 응답 앞에 붙어 스트리밍 렌더와 `[§id]` 인용 형식을 흐트러뜨린다.
+- **[`local`] 모델 적재 상태를 확인하고 호출한다.** GPU 메모리 한계로 한 번에 한 모델만 적재되는 구성이 많고, 미적재 상태로 호출하면 서버가 자동 교체 없이 **503**을 반환한다. 검토가 끝나면 모델을 내려 같은 서버를 쓰는 다른 사람이 쓸 수 있게 한다.
+- **[`local`] 도입 전 서버 담당자 확인**: **필수** — tool calling 파싱 활성 여부(vLLM 기준 `--enable-auto-tool-choice` + 모델별 `--tool-call-parser`). 꺼져 있으면 질문·답변은 되지만 `propose_edit` 기반 텍스트 수정이 동작하지 않는다. **선택** — prefix caching 활성 여부(9-4의 캐싱 이득 전제, 속도 최적화 항목이라 미확인이어도 진행 가능).
+- **[`api`]** 모델 회전 주기가 빠르므로 배포 시점에 공급자 문서에서 최신 모델을 확인해 상수를 교체한다.
 
 ### 9-2. 키 보안
 
-- **외부 공유 프로토타입**: `api/chat.js` 프록시 **필수**. 키는 서버측 `OPENAI_API_KEY`, 클라이언트는 `/api/chat`만 호출.
-- 🔴 **프록시는 키 문자열 노출만 막는다.** 무인증 공개 엔드포인트면 프록시 남용(URL만 알면 내 OpenAI 계정으로 호출) 위험이 남는다. OpenAI는 하드 예산 컷오프가 없어 남용 시 비용이 계속 누적된다. 외부 공유 시 아래를 함께 적용한다:
-  - **저한도 전용 키**(선충전·auto-recharge OFF) — 비용 상한, 최후 방어선.
-  - **Origin/Referer 검증** — 배포 도메인에서 온 요청만 프록시가 통과.
-  - **per-IP rate limit** — 분당 호출 제한.
-  - **모델·max_tokens 서버측 고정** — 클라이언트가 비싼 모델·대용량 요청을 못 부르게.
-  - (선택) **공유 토큰 헤더**(`x-app-secret`) — PoC 링크에 비밀값.
-- **내부 데모(외부 미공유)**: `VITE_OPENAI_API_KEY` 허용하되 일회용·선충전·auto-recharge OFF 전용 키만. 번들에 평문 노출됨을 전제로 저한도 키를 쓴다.
-- `save-desc.js`도 무인증이면 동일 위험(무단 desc 수정) — 외부 공유 시 같은 보호를 적용한다.
-- 배포 인프라는 [deployment.md](references/deployment.md)를 따른다(`OPENAI_API_KEY`를 `GITHUB_TOKEN`과 별도로 추가).
+- **프로바이더와 무관하게 프록시 필수.** 키는 서버측 `CHAT_API_KEY`, 클라이언트는 `/api/chat`만 호출한다. 로컬 dev는 Vite dev proxy가 같은 경로를 대신 처리한다(chatbot-architecture.md §5-b).
+- **`VITE_` 접두어를 키에 붙이지 않는다.** 빌드 시 번들에 평문 인라인되어 브라우저에 노출된다. 비밀이 아닌 값(`VITE_CHAT_DASHBOARD_URL`)에만 쓴다.
+- **`.env.local`이 `.gitignore`에 있는지 확인한다.** 키가 커밋되면 LLM 서버가 열린다.
+- 🔴 **프록시는 키 문자열 노출만 막는다.** 무인증 공개 엔드포인트면 남용 위험이 남는다. 프로바이더별로 피해가 다르다.
+  - **`local`**: 과금은 없지만 호출이 GPU를 점유해 같은 서버를 쓰는 다른 사람의 작업을 지연시킨다. 서버 네트워크 밖으로 노출되는 경로에 `local`을 걸지 않는다.
+  - **`api`**: 남용이 곧 비용이다. OpenAI는 하드 예산 컷오프를 제공하지 않으므로 **저한도 전용 키**(선충전·auto-recharge OFF)를 쓴다.
+  - 공통 방어: **Origin/Referer 검증**(배포 도메인 요청만 통과), **per-IP rate limit**, **모델·max_tokens 서버측 고정**, (선택) **공유 토큰 헤더**(`x-app-secret`).
+- `save-desc.js`도 무인증이면 동일 위험(무단 desc 수정) — 사외 공유 시 같은 보호를 적용한다.
+- 배포 인프라는 [deployment.md](references/deployment.md)를 따른다(`CHAT_API_BASE_URL`·`CHAT_API_KEY`를 `GITHUB_TOKEN`과 별도로 추가).
+- 🔒 **조직 내부 서버 정보는 스킬 파일에 적지 않는다.** 실제 주소·키 위치·모델 목록은 `references/local-llm.local.md`에만 둔다 — 파일명 접미사 `.local.md`가 git 배포 제외 규약이다.
 
 ### 9-3. 신규 의존성
 
@@ -1658,7 +1690,7 @@ npm i diff react-markdown remark-gfm rehype-highlight
 
 - 메시지 히스토리: 최근 10턴(20메시지) 슬라이딩 윈도우만 API 전달.
 - 대화 영속성: `localStorage` 최근 40메시지(프로토타입 규모엔 충분, Dexie/IndexedDB는 과설계).
-- 캐싱: 불변 system 컨텍스트를 messages 선두에 고정 → OpenAI 자동 프롬프트 캐싱 이득.
+- 캐싱: 불변 system 컨텍스트를 messages 선두에 고정. 로컬은 vLLM automatic prefix caching이 켜져 있을 때 이득이 생기고(9-1 확인 항목), OpenAI는 자동 프롬프트 캐싱이 적용된다.
 
 ---
 
@@ -1695,11 +1727,13 @@ DescTooltip 추가 후 아래를 확인한다. 하나라도 실패하면 수정.
 21. **편집·배포 배치**: DetailBody·EditableBody·InspectionContext(saveBody)·`api/save-desc.js` 배치, CSS에 `dtd-*`·`eb-*` 추가, 배포 인프라([deployment.md](references/deployment.md)) 1회 설정 완료? 그리고 이번 수정분이 **빌드 검증 후 배포(R1)**됐고, 브라우저 편집분이 **로컬에 동기화(R2)**됐는가(Phase 5-e 배포·동기화 운영 규칙)?
 
 **챗봇 검증 (챗봇 활성 시, Phase 6~9)**
-22. **라우팅 폐기 + 데이터 격리**: `intentClassifier`가 제거됐고, `contextAssembler`가 모든 레이어 + `data.json`을 섹션 앵커(`[§id]`)와 함께 전부 조립하는가? 조립 토큰이 75k 이하인가(초과 시 축약)? 레이어 파일·`data.json`이 **현재 프로토타입**의 PRD와 일치하는가(이전 프로젝트 파일 잔재 없음 — Phase 6-4)?
+22. **라우팅 폐기 + 데이터 격리**: `intentClassifier`가 제거됐고, `contextAssembler`가 모든 레이어 + `data.json`을 섹션 앵커(`[§id]`)와 함께 전부 조립하는가? 조립 토큰이 컨텍스트 예산 이하인가(모델 상한에 맞춰 설정, 초과 시 축약)? 레이어 파일·`data.json`이 **현재 프로토타입**의 PRD와 일치하는가(이전 프로젝트 파일 잔재 없음 — Phase 6-4)?
 23. **grounding·citation**: `base-context.md`에 "컨텍스트에서만 답·없으면 미정의·`[§id]` 인용" 규칙이 있는가? `[§id]` 칩 클릭 시 정책 패널의 해당 항목으로 이동하는가?
 24. **텍스트 수정**: `propose_edit`의 `target_num`이 data.json num enum인가? Apply가 기존 `saveBody`를 호출하고, stale(old_body 불일치) 시 차단하는가? Diff 카드 + Apply/Discard 게이트가 동작하는가?
 25. **UX·스트리밍**: 토큰 스트리밍 + 중단 버튼, 마크다운 렌더(`rehype-raw` 미사용), scope chip, 추천 질문, localStorage 영속이 동작하는가?
-26. **모델·보안**: `CHAT_MODEL`이 단일 상수이고 하드코딩이 없는가? 외부 공유 프로토타입이면 `api/chat.js` 프록시로 키가 서버측에 있는가(`VITE_` 키 미노출)? 프록시에 **저한도 키·Origin 검증·rate limit·모델 고정** 중 비용·남용 방어가 적용됐는가(무인증 open proxy 방치 금지 — Phase 9-2)?
+26. **프로바이더·모델**: `CHAT_PROVIDER`·`CHAT_MODEL`이 단일 상수이고 하드코딩이 없는가? Phase 0-7에서 정한 **열람 위치와 프로바이더가 맞는가**(LLM 서버 네트워크 밖에서 열 프로토타입에 `local`을 걸어두지 않았는가 — 그 조합은 챗봇이 응답하지 못한다)? `CONTEXT_TOKEN_BUDGET`이 선택한 모델의 컨텍스트 상한 안에 있는가?
+26-b. **[`local`] 운영 UX**: 모델 미적재(503)·인증 실패(401)·네트워크 미접속 각각에 대해 **사용자가 조치할 수 있는 문구**가 뜨는가(관리 콘솔 주소가 있으면 함께 노출)? HTTP 상태코드 원문만 노출하지 않는가? (Phase 8)
+26-c. **키 보안·내부 정보 분리**: 키가 서버측 `CHAT_API_KEY`에 있고 `VITE_` 접두어가 붙지 않았는가? `.env.local`이 `.gitignore`에 있는가? 프록시에 **Origin 검증·rate limit·모델 고정**(+ `api`면 저한도 키) 중 남용 방어가 적용됐는가(무인증 open proxy 방치 금지 — Phase 9-2)? **조직 내부 LLM 서버의 주소·키 위치·모델 목록이 스킬 파일이나 프로토타입 소스에 하드코딩돼 있지 않은가**(`.local.md` 또는 `.env.local`에만 존재해야 한다)?
 
 ---
 
@@ -1837,18 +1871,19 @@ Agent 도구로 Evaluator 서브에이전트를 호출한다(생성 컨텍스트
 
 전체 구현 코드·CSS는 [chatbot-architecture.md](references/chatbot-architecture.md) 참조. 생성 파일:
 
-- `src/lib/chatConfig.ts` — `CHAT_MODEL` 단일 상수 + 토큰 예산 상수 (모델 하드코딩 금지)
+- `src/lib/chatConfig.ts` — `CHAT_PROVIDER`(`local`/`api`)·`CHAT_MODEL`·`CHAT_DASHBOARD_URL`·토큰 예산 상수 (모델 하드코딩 금지)
 - `src/lib/contextAssembler.ts` — 라우팅 없이 전부 조립 + 섹션 앵커 + `data.json` 직렬화
 - `src/lib/chatTools.ts` — `propose_edit` 도구 (`target_num` enum from data.json)
-- `src/contexts/InspectionChatContext.tsx` — 스트리밍 파싱 + tool 분기 + `saveBody` 재사용 + localStorage 영속
+- `src/contexts/InspectionChatContext.tsx` — 스트리밍 파싱 + tool 분기 + `saveBody` 재사용 + localStorage 영속 + 503·401·연결불가 안내
 - `src/components/InlineDiff.tsx` — jsdiff 단어 단위 diff
-- `api/chat.js` — 키 프록시(스트리밍 패스스루). 외부 공유 시 필수
+- `api/chat.js` — 키 프록시(스트리밍 패스스루) + upstream 오류 구조화. 배포본에서 필수
+- `vite.config.ts` — `/api/chat` dev proxy (`local` 프로바이더를 로컬 dev에서 쓰려면 필수)
 - `src/data/base-context.md` — 역할·grounding 규칙·citation 형식 (항상 포함)
 - `src/data/{prd,discovery,policies,changelog}-context.md` — 레이어 1~4 (모두 항상 포함)
 - `AppShell.tsx` 내 `ChatToggle`·`ChatPanel` — 마크다운 렌더·scope chip·추천 질문·diff 카드·중단 버튼
-- 환경변수: `OPENAI_API_KEY`(프록시, 서버측) / 내부 데모는 `VITE_OPENAI_API_KEY`
+- 환경변수(모두 서버측, `VITE_` 금지): `CHAT_API_BASE_URL`·`CHAT_API_KEY`. `.env.local`은 `.gitignore` 등재 확인
 - `npm i diff react-markdown remark-gfm rehype-highlight`
 - **제거**: `src/lib/intentClassifier.ts` (라우팅 폐기)
 
 작업 완료 후 1줄 요약:
-"DescTooltip 적용 컴포넌트 N개 / PRD 기반 기술 항목: 비즈니스 로직 X건, 수식 Y건, 예외처리 Z건 / 챗봇: [활성/비활성] · 모델 [CHAT_MODEL 값] · 키 [프록시/내부키] / 미커버 영역: A"
+"DescTooltip 적용 컴포넌트 N개 / PRD 기반 기술 항목: 비즈니스 로직 X건, 수식 Y건, 예외처리 Z건 / 챗봇: [활성/비활성] · 프로바이더 [local/api] · 모델 [CHAT_MODEL 값] · 실행 위치 [로컬 dev/내부망 호스팅/Vercel] / 미커버 영역: A"

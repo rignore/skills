@@ -45,6 +45,9 @@ npx vercel link --yes --token=$TOKEN
 Vercel 대시보드 → 프로젝트 → Settings → Environment Variables → `GITHUB_TOKEN` = (공유 PAT), Production.
 - 값은 **위에서 한 번 발급한 PAT 재사용**.
 
+> **챗봇 환경변수는 별개다.** 챗봇을 켰다면 `CHAT_API_BASE_URL`·`CHAT_API_KEY`도 같은 화면에서 추가한다([chatbot-architecture.md](chatbot-architecture.md) §5).
+> 🔴 단, **자체 호스팅 LLM 서버가 사설 IP에 있으면 Vercel 배포본에서 도달하지 못한다** — Vercel 런타임에서 사설망으로 라우팅되지 않는다. Vercel로 배포할 프로토타입의 챗봇은 상용 API 프로바이더(`https://api.openai.com/v1`)로 두거나, 자체 호스팅 LLM을 쓸 경우 `npm run dev`(Vite dev proxy) 또는 내부망 호스팅으로 실행한다. 판단 기준은 chatbot-architecture.md §0의 표.
+
 ### 4. Actions 워크플로우
 `.github/workflows/deploy-{project}.yml` 생성. **`VERCEL_PROJECT_ID`는 Secret이 아니라 직접 명시**(프로토타입별 다름, ID 자체는 민감정보 아님). `VERCEL_TOKEN`·`VERCEL_ORG_ID`만 공유 Secret.
 

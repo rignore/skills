@@ -4,23 +4,47 @@
 
 > 설계 원칙·정책·체크포인트는 SKILL.md Phase 6~9에 있다. 이 문서는 **코드**만 다룬다.
 
+**LLM 프로바이더는 두 가지 중에서 고른다** — 자체 호스팅 LLM 서버(`local`)와 상용 LLM API(`api`). 둘 다 OpenAI Chat Completions 스키마를 쓰므로 **코드는 하나고, base URL·키·모델명만 갈린다**(§0·§1).
+
 ## 아키텍처 한눈에
 
 ```
 사용자 입력
   → 컨텍스트 조립 (전부 주입 + 섹션 앵커 [DOC §ID] + descs/data.json)
   → /api/chat 프록시 (키 서버측 보관, 스트리밍 패스스루)
-  → OpenAI Chat Completions (stream + tools=[propose_edit])
+  → OpenAI 호환 Chat Completions (stream + tools=[propose_edit])
+     · local : 자체 호스팅 LLM 서버   ${CHAT_API_BASE_URL}
+     · api   : 상용 LLM API           https://api.openai.com/v1
   → tool_call?
       ├─ 없음(질문) → 마크다운 스트리밍 렌더 + citation 칩 → 클릭 시 정책 패널 이동
       └─ 있음(편집) → InlineDiff 카드 → Apply → 기존 saveBody() 재사용 → 재배포
 ```
 
-핵심 설계 결정 4가지:
-1. **컨텍스트 라우팅 폐기** — regex `intentClassifier` 제거. 75k 토큰 이하 코퍼스는 전부 주입이 라우팅보다 안전(잘못 분기 시 정보 누락이 순손실).
-2. **grounding + citation** — "컨텍스트에서만 답·없으면 미정의 응답·섹션 id 인용"을 system prompt와 structured output으로 강제.
-3. **텍스트 수정 = saveBody 재사용** — 챗봇은 `propose_edit` 도구로 수정안만 제안. Apply 시 기존 `InspectionContext.saveBody(scope, num, body)`를 호출 → 새 백엔드 불필요. ([desc-editing.md](desc-editing.md) §2·§7)
-4. **키 프록시** — 외부 공유 프로토타입은 `api/chat.js` 서버리스 프록시로 키를 서버측에 보관. 클라이언트는 `/api/chat`만 호출.
+핵심 설계 결정 5가지:
+1. **프로바이더 교체 가능** — OpenAI 호환 엔드포인트를 제공하는 자체 호스팅 서버(vLLM·Ollama·LM Studio 등)와 상용 API를 같은 코드로 지원한다. 자체 호스팅을 고르면 PRD·정책·desc 전문이 외부로 나가지 않고 호출 비용도 없다. 대신 서버가 있는 네트워크 안에서만 동작한다(§0).
+2. **컨텍스트 라우팅 폐기** — regex `intentClassifier` 제거. 컨텍스트 예산 이하 코퍼스는 전부 주입이 라우팅보다 안전(잘못 분기 시 정보 누락이 순손실).
+3. **grounding + citation** — "컨텍스트에서만 답·없으면 미정의 응답·섹션 id 인용"을 system prompt와 structured output으로 강제.
+4. **텍스트 수정 = saveBody 재사용** — 챗봇은 `propose_edit` 도구로 수정안만 제안. Apply 시 기존 `InspectionContext.saveBody(scope, num, body)`를 호출 → 새 백엔드 불필요. ([desc-editing.md](desc-editing.md) §2·§7)
+5. **키 프록시** — 프로바이더와 무관하게 키를 서버측에 둔다. 클라이언트는 `/api/chat`만 호출한다.
+
+---
+
+## 0. 프로바이더·실행 환경 선택 (가장 먼저 결정)
+
+두 축을 함께 정한다. **누가 어디서 이 프로토타입을 여는가**가 프로바이더를 결정한다.
+
+| 프로토타입 실행 위치 | `local`(자체 호스팅) | `api`(상용) | 비고 |
+|---|---|---|---|
+| **로컬 dev 서버**(`npm run dev`) — LLM 서버와 같은 네트워크 | ✅ Vite dev proxy 경유 | ✅ | 작성자 본인이 보며 검토할 때. 추가 인프라 0 |
+| **사내(내부망) 호스팅** — 정적 배포 + 프록시 동봉 | ✅ 내부 프록시 경유 | ✅ | 팀원 여러 명이 링크로 볼 때 |
+| **외부 클라우드 배포**(Vercel 등) | ❌ **불가**(사설 IP 미도달) | ✅ | 사외 공유. 프롬프트가 외부 API로 나간다 |
+
+자체 호스팅 서버가 **사설 IP + HTTP**로 떠 있는 경우(대부분의 사내 GPU 서버) 두 가지 제약이 따라온다.
+
+- **브라우저에서 LLM 서버를 직접 호출하지 않는다.** HTTPS로 서빙되는 페이지에서 `http://<사설 IP>`를 부르면 브라우저가 mixed content로 차단하고, 사설망 대상 요청은 Private Network Access 정책에도 걸린다. `local` 경로는 **항상 서버측 프록시 경유**다.
+- **외부 클라우드에 배포한 페이지에서는 도달 자체가 불가능하다.** 클라우드 런타임에서 사내 사설 IP로 라우팅되지 않는다. 그 조합이 필요하면 LLM 서버를 공인 도메인 + TLS로 노출하는 인프라 작업이 선행돼야 하고, 이는 내부 LLM을 인터넷에 여는 일이므로 **인프라·보안 담당자 승인 없이 진행하지 않는다.**
+
+> **조직 내부 서버의 실제 주소·모델 목록·운영 절차는 이 문서에 적지 않는다.** `references/local-llm.local.md`에 분리해 두고 스킬 본문은 프로바이더 중립으로 유지한다 — 파일명 접미사 `.local.md`가 git 배포 제외 규약이라 사내·공개 레포 어디로도 동기화되지 않는다. 그 파일이 없으면 자체 호스팅 서버 정보를 사용자에게 확인하거나 `api` 프로바이더로 진행한다.
 
 ---
 
@@ -29,19 +53,53 @@
 ```ts
 // src/lib/chatConfig.ts
 
-// 🔴 모델 id는 회전 주기가 빠르다. 하드코딩 금지 — 이 상수 하나만 갱신한다.
-// 배포 시점에 platform.openai.com/docs/models 에서 최신 모델을 확인하고 교체할 것.
-// (gpt-4o는 구형일 수 있음. 비용·컨텍스트 윈도우를 보고 워크호스 모델을 고른다.)
+// Phase 0에서 고른 프로바이더를 여기에 고정한다.
+//   'local' = 자체 호스팅 LLM 서버(OpenAI 호환) | 'api' = 상용 LLM API
+export const CHAT_PROVIDER: 'local' | 'api' = 'api';
+
+// 🔴 모델명 하드코딩 금지 — 이 상수 하나만 갱신한다.
+// local : 서버에 실제 적재된 모델명과 정확히 일치해야 한다(불일치 시 §5의 503/404).
+// api   : 배포 시점에 공급자 문서에서 최신 모델을 확인하고 교체. 모델 회전 주기가 빠르다.
 export const CHAT_MODEL = 'gpt-4o';
 
 export const MAX_OUTPUT_TOKENS = 1024;
 export const HISTORY_TURNS = 10;          // 최근 N턴(2N 메시지)만 API에 전달
-export const CONTEXT_TOKEN_BUDGET = 75_000; // 이 이상이면 컨텍스트 축약 또는 client RAG 검토
+
+// 컨텍스트 예산 = 모델 컨텍스트 상한 − 답변 출력분 − 대화 히스토리 여유.
+// 자체 호스팅 모델은 상한이 좁은 경우가 많다(예: 상한 65k → 예산 48k).
+export const CONTEXT_TOKEN_BUDGET = 75_000;
+
+// 자체 호스팅 서버에 관리 콘솔이 있으면 그 주소. 모델 미적재(503) 안내에서 열어준다.
+// 비밀이 아니므로 VITE_ 접두어 허용. 없으면 빈 문자열.
+export const CHAT_DASHBOARD_URL = import.meta.env.VITE_CHAT_DASHBOARD_URL ?? '';
 ```
 
-키는 클라이언트에 두지 않는다. `api/chat.js` 프록시(§5)가 `process.env.OPENAI_API_KEY`로 보관한다.
+### 프로바이더별 설정 값
 
-> `VITE_OPENAI_API_KEY`는 빌드 시 번들에 **평문 인라인**되어 브라우저에 노출된다(Vite 공식 동작). 외부 공유 프로토타입에서는 반드시 프록시를 쓴다.
+| 항목 | `local`(자체 호스팅) | `api`(상용) |
+|---|---|---|
+| `CHAT_API_BASE_URL` | 서버의 OpenAI 호환 엔드포인트 (예: `http://<host>:<port>/v1`) | `https://api.openai.com/v1` |
+| `CHAT_API_KEY` | 서버에 설정된 API 키 | 공급자 발급 키 |
+| `CHAT_MODEL` | 서버에 적재된 모델명 | 공급자 모델 id |
+| `CONTEXT_TOKEN_BUDGET` | 모델 상한에 맞춰 축소 | 75k |
+
+### 자체 호스팅 서버를 고를 때 확인할 것
+
+**필수 1건 — tool calling 파싱 활성 여부.** 텍스트 수정 기능(`propose_edit`, §4)은 서버가 도구 호출을 파싱해야 동작한다. vLLM 기준으로 기동 명령에 `--enable-auto-tool-choice`와 모델에 맞는 `--tool-call-parser <이름>`이 함께 붙어 있어야 한다.
+
+- `--enable-auto-tool-choice`는 도구를 서버에 등록하는 옵션이 아니라, 요청의 `tool_choice: "auto"`를 받아들여 **모델이 스스로 도구를 부를지 판단하도록 허용**하는 스위치다. 도구 정의는 클라이언트가 요청마다 `tools` 배열로 보내므로 서버가 사전에 알 필요는 없다.
+- `--tool-call-parser`는 모델이 자기 형식으로 뱉은 도구 호출 텍스트를 OpenAI 규격의 `tool_calls` 구조로 번역한다. 파서 이름이 모델과 맞지 않으면 도구 호출이 일반 텍스트로 새어 나온다.
+- 꺼져 있으면 **질문·답변은 정상 동작하고 텍스트 수정 제안만 동작하지 않는다.** 그 경우 §4 대신 JSON 응답 파싱으로 우회하거나, 수정 기능을 끄고 질의응답 전용으로 운영한다.
+
+**선택 1건 — prefix caching 활성 여부.** 매 요청마다 같은 컨텍스트를 프롬프트 앞에 붙이는 구조라, 켜져 있으면 두 번째 질문부터 응답이 빨라진다(§11). **기능 조건이 아니라 속도 최적화 항목**이므로 확인하지 못했어도 도입을 진행한다.
+
+**모델 선택 기준**: 컨텍스트 상한이 조립 결과(통상 15~48k)를 담을 수 있어야 한다. 추론 특화 모델(reasoning model)은 사고 과정 텍스트가 응답 앞에 붙어 스트리밍 렌더와 `[§id]` 인용 형식을 흐트러뜨리므로 이 용도에는 쓰지 않는다.
+
+### 키 보관
+
+키는 클라이언트에 두지 않는다. 프록시(§5)가 `process.env.CHAT_API_KEY`로 보관한다.
+
+> `VITE_` 접두어가 붙은 변수는 빌드 시 번들에 **평문 인라인**되어 브라우저에 노출된다(Vite 공식 동작). 비밀이 아닌 값(`VITE_CHAT_DASHBOARD_URL`)만 이 접두어를 쓴다. **API 키에는 절대 `VITE_`를 붙이지 않는다.**
 
 ---
 
@@ -98,7 +156,9 @@ export function estimateTokens(text: string): number {
 }
 ```
 
-> **75k 가드레일**: 조립 결과가 `CONTEXT_TOKEN_BUDGET`을 넘으면 빌드 시 콘솔 경고를 남기고, 레이어 파일을 핵심 섹션만 남겨 축약한다. 100k를 넘으면 전부 주입을 포기하고 client-side RAG(precompute embeddings + cosine)로 전환한다 — 단 현 규모(통상 15~75k)에서는 불필요한 over-engineering이므로 도입하지 않는다.
+> **컨텍스트 예산 가드레일**: 조립 결과가 `CONTEXT_TOKEN_BUDGET`을 넘으면 빌드 시 콘솔 경고를 남기고, 레이어 파일을 핵심 섹션만 남겨 축약한다.
+> 예산은 **선택한 모델의 컨텍스트 상한에서 답변 출력분과 대화 히스토리 여유를 뺀 값**으로 잡는다(예: 상한 65k → 48k). 상용 API 모델은 통상 75k로 충분하다.
+> 예산을 넘겼는데 축약할 여지가 없으면 client-side RAG(precompute embeddings + cosine)로 전환한다 — 통상 규모(15~48k)에서는 불필요한 over-engineering이므로 먼저 축약을 시도한다.
 
 ---
 
@@ -195,28 +255,44 @@ export const PROPOSE_EDIT_TOOL = {
 
 ## 5. api/chat.js — 프록시 (스트리밍 패스스루)
 
-`api/save-desc.js`와 같은 디렉토리에 둔다. Vercel이 서버리스 함수로 인식한다([deployment.md](deployment.md)).
+`api/save-desc.js`와 같은 디렉토리에 둔다. Vercel이 서버리스 함수로 인식한다([deployment.md](deployment.md)). 로컬·OpenAI 어느 쪽이든 **엔드포인트 스키마가 같으므로 base URL과 키만 환경변수로 바꾼다.**
 
 ```js
 // api/chat.js
+const BASE_URL = process.env.CHAT_API_BASE_URL ?? 'https://api.openai.com/v1';
+const DASHBOARD_URL = process.env.CHAT_DASHBOARD_URL ?? '';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'OPENAI_API_KEY 미설정' });
+  const apiKey = process.env.CHAT_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'CHAT_API_KEY 미설정' });
 
-  // 🔴 외부 공유 시 필수: Origin 검증 + per-IP rate limit + 모델/max_tokens 서버측 고정 + (선택) x-app-secret 헤더.
-  //    무인증이면 URL만 알면 누구나 내 OpenAI 비용으로 호출 가능(open proxy 남용).
+  // 🔴 사외 공유 시 필수: Origin 검증 + per-IP rate limit + 모델/max_tokens 서버측 고정 + (선택) x-app-secret 헤더.
   try {
-    const upstream = await fetch('https://api.openai.com/v1/chat/completions', {
+    const upstream = await fetch(`${BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({ ...req.body, stream: true }),
     });
+
+    // 자체 호스팅 서버는 요청 모델이 메모리에 적재돼 있지 않으면 503을 반환하는 경우가 많다
+    // (GPU 메모리 한계로 모델을 자동 교체하지 않는 구성). 사용자가 조치할 수 있게 구조화해 내려준다.
+    if (upstream.status === 503) {
+      return res.status(503).json({
+        error: 'MODEL_NOT_LOADED',
+        message: '요청한 모델이 LLM 서버에 적재되어 있지 않습니다.',
+        dashboard: DASHBOARD_URL,
+      });
+    }
+    if (upstream.status === 401) {
+      return res.status(401).json({ error: 'UNAUTHORIZED', message: 'API 키가 서버 설정과 일치하지 않습니다.' });
+    }
     if (!upstream.ok) {
       const t = await upstream.text();
       return res.status(upstream.status).json({ error: t });
     }
+
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     // SSE 청크를 그대로 클라이언트로 흘려보낸다
@@ -229,14 +305,62 @@ export default async function handler(req, res) {
     }
     res.end();
   } catch (e) {
-    res.status(500).json({ error: String(e) });
+    // 자체 호스팅 서버가 사설망에 있는데 이 함수가 외부 클라우드에서 돌면 도달하지 못해 여기로 떨어진다.
+    res.status(502).json({ error: 'UPSTREAM_UNREACHABLE', message: String(e) });
   }
 }
 ```
 
-> **환경변수**: Vercel 대시보드 → Settings → Environment Variables → `OPENAI_API_KEY` 추가(Production). `GITHUB_TOKEN`(save-desc용)과 별개. 빌드 방식은 deployment.md의 `vercel deploy --prod`(런타임 env 자동 주입)를 따른다.
-> **spend-cap**: OpenAI는 하드 예산 컷오프를 제공하지 않으므로(대시보드 한도는 알림용), 선충전 잔액 + auto-recharge OFF인 전용 프로젝트 키를 쓴다.
-> 🔴 **open proxy 남용 주의**: 프록시는 키 문자열만 숨긴다. `/api/chat`이 무인증 공개면 URL을 아는 누구나 내 계정으로 호출할 수 있다. 외부 공유 시 ① Origin/Referer 검증, ② per-IP rate limit, ③ 모델·max_tokens 서버측 고정, ④ (선택) `x-app-secret` 헤더를 함께 적용한다. 저한도 키는 최후 방어선일 뿐 남용 자체를 막지 못한다.
+**환경변수** — 프로바이더별로 값이 다르다.
+
+| 변수 | `local`(자체 호스팅) | `api`(상용) |
+|---|---|---|
+| `CHAT_API_BASE_URL` | 서버의 OpenAI 호환 엔드포인트 (`http://<host>:<port>/v1`) | `https://api.openai.com/v1` |
+| `CHAT_API_KEY` | 서버에 설정된 API 키 | 공급자 발급 키 |
+| `CHAT_DASHBOARD_URL` | 관리 콘솔 주소(있으면). 503 안내에 노출 | 미사용 |
+
+로컬 dev에서는 프로젝트 루트 `.env.local`에 넣는다. **`.env.local`이 `.gitignore`에 있는지 반드시 확인한다** — 키가 커밋되면 LLM 서버가 열린다. 배포 시에는 Vercel 대시보드 → Settings → Environment Variables에 `GITHUB_TOKEN`(save-desc용)과 별개로 추가하고, 빌드는 deployment.md의 `vercel deploy --prod`(런타임 env 자동 주입) 방식을 따른다.
+
+> 🔴 **open proxy 남용 주의**: 프록시는 키 문자열만 숨긴다. `/api/chat`이 무인증 공개면 URL을 아는 누구나 호출할 수 있다.
+> - **`local`**: 과금은 없지만 호출이 GPU를 점유해 **같은 서버를 쓰는 다른 사람의 작업을 지연**시킨다. 내부망 밖으로 노출되는 경로에는 `local`을 걸지 않는다.
+> - **`api`**: 남용이 곧 비용이다. OpenAI는 하드 예산 컷오프를 제공하지 않으므로 선충전 잔액 + auto-recharge OFF 전용 키를 쓴다.
+> - 공통: ① Origin/Referer 검증, ② per-IP rate limit, ③ 모델·max_tokens 서버측 고정, ④ (선택) `x-app-secret` 헤더.
+
+---
+
+## 5-b. 로컬 dev 서버에서 챗봇 쓰기 (Vite proxy)
+
+`api/chat.js`는 Vercel 런타임 함수라 `npm run dev`에서는 실행되지 않는다. 자체 호스팅 LLM 서버를 쓰는 경우 로컬 dev가 주 사용 경로가 되므로, **Vite dev proxy로 같은 `/api/chat` 경로를 LLM 서버에 연결**한다. 클라이언트 코드는 그대로 둔다.
+
+```ts
+// vite.config.ts
+import { defineConfig, loadEnv } from 'vite';
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), ''); // VITE_ 접두어 없는 값도 읽는다
+  const base = env.CHAT_API_BASE_URL ?? '';     // 예: http://<host>:<port>/v1
+  return {
+    server: {
+      proxy: base ? {
+        '/api/chat': {
+          target: base.replace(/\/v1\/?$/, ''),
+          changeOrigin: true,
+          rewrite: () => '/v1/chat/completions',
+          configure: (proxy) => {
+            proxy.on('proxyReq', (proxyReq) => {
+              proxyReq.setHeader('Authorization', `Bearer ${env.CHAT_API_KEY}`);
+            });
+          },
+        },
+      } : {},
+    },
+  };
+});
+```
+
+- 페이지가 `http://localhost:5173`(HTTP)이고 요청도 서버측 프록시를 타므로 mixed content 차단이 발생하지 않는다.
+- 프록시가 SSE를 그대로 흘려보내므로 스트리밍이 유지된다. 응답이 한꺼번에 몰려 오면 dev 미들웨어의 압축·버퍼링을 끈다.
+- **desc 편집(`/api/save-desc`)은 이 방식으로 살아나지 않는다.** GitHub 커밋 함수라 배포 환경에서만 동작한다 — 로컬 dev는 질문·답변까지, 편집 반영은 배포본에서 한다.
 
 ---
 
@@ -247,7 +371,7 @@ export default async function handler(req, res) {
 import { createContext, useContext, useState, useRef, useCallback, type ReactNode } from 'react';
 import { assembleContext } from '../lib/contextAssembler';
 import { PROPOSE_EDIT_TOOL } from '../lib/chatTools';
-import { CHAT_MODEL, MAX_OUTPUT_TOKENS, HISTORY_TURNS } from '../lib/chatConfig';
+import { CHAT_MODEL, MAX_OUTPUT_TOKENS, HISTORY_TURNS, CHAT_DASHBOARD_URL } from '../lib/chatConfig';
 
 export interface EditProposal {
   scope: 'screen' | 'logic';
@@ -327,7 +451,24 @@ export function InspectionChatProvider({ children, saveBody, getBody }: {
           messages: [{ role: 'system', content: system }, ...history],
         }),
       });
-      if (!resp.ok || !resp.body) throw new Error(`HTTP ${resp.status}`);
+      // 자체 호스팅 서버 특유의 실패를 사용자가 조치 가능한 문구로 바꾼다.
+      // 🔴 오류 코드(§5의 api/chat.js가 붙임)와 상태코드를 함께 본다 —
+      //    Vite dev proxy(§5-b)는 LLM 서버의 원본 응답을 그대로 흘려보내므로 코드가 오지 않는다.
+      if (!resp.ok) {
+        const info = await resp.json().catch(() => ({}));
+        if (info.error === 'MODEL_NOT_LOADED' || resp.status === 503) {
+          throw new Error(
+            `모델 "${CHAT_MODEL}"이(가) LLM 서버에 적재되어 있지 않습니다.` +
+            (CHAT_DASHBOARD_URL ? ` 관리 콘솔(${CHAT_DASHBOARD_URL})에서 모델을 기동한 뒤 다시 질문해 주세요.` : ' 서버 관리자에게 모델 기동을 요청해 주세요.')
+          );
+        }
+        if (info.error === 'UNAUTHORIZED' || resp.status === 401)
+          throw new Error('인증 실패 — 서버 키 설정(CHAT_API_KEY)을 확인해 주세요.');
+        if (info.error === 'UPSTREAM_UNREACHABLE' || resp.status === 502 || resp.status === 504)
+          throw new Error('LLM 서버에 연결할 수 없습니다. 네트워크 접속 상태를 확인해 주세요.');
+        throw new Error(`HTTP ${resp.status}`);
+      }
+      if (!resp.body) throw new Error('응답 본문 없음');
 
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
@@ -619,22 +760,26 @@ if (typeof expectedOld === 'string' && target.body !== expectedOld) {
 |------|------|
 | 메시지 히스토리 | 최근 `HISTORY_TURNS`턴(20메시지)만 API 전달. 슬라이딩 윈도우. 길어지면 헤더 "초기화" |
 | 영속성 | `localStorage`에 최근 40메시지(프로토타입 규모엔 충분, Dexie/IndexedDB는 과함) |
-| 컨텍스트 윈도우 | 전체 레이어 조립 ≈ 15~75k 토큰. `CONTEXT_TOKEN_BUDGET`(75k) 초과 시 축약, 100k 초과 시 client RAG 검토 |
-| 캐싱 | 불변 컨텍스트(system)를 messages 선두에 고정 → OpenAI 자동 프롬프트 캐싱 이득 |
+| 컨텍스트 윈도우 | 전체 레이어 조립 ≈ 15~48k 토큰. `CONTEXT_TOKEN_BUDGET`(모델 상한에 맞춰 설정) 초과 시 축약 |
+| 캐싱 | 불변 컨텍스트(system)를 messages 선두에 고정. `api`는 자동 프롬프트 캐싱이 적용되고, `local`은 서버의 prefix caching이 켜져 있을 때 이득이 생긴다 |
+| GPU 점유 (`local`) | GPU 메모리 한계로 한 번에 한 모델만 적재되는 구성이 많다. 검토가 끝나면 관리 콘솔에서 모델을 내려 다른 사람이 쓸 수 있게 비운다 |
 
 ---
 
 ## 산출물 체크리스트
 
-- [ ] `src/lib/chatConfig.ts` — `CHAT_MODEL` 단일 상수(하드코딩 제거), 배포 전 최신 모델 확인 주석
+- [ ] `src/lib/chatConfig.ts` — `CHAT_PROVIDER`·`CHAT_MODEL`·`CHAT_DASHBOARD_URL` 단일 상수(하드코딩 제거)
 - [ ] `src/lib/contextAssembler.ts` — 라우팅 없이 전부 주입 + 섹션 앵커 + data.json 직렬화
 - [ ] `src/lib/chatTools.ts` — `propose_edit` 도구(num enum from data.json)
 - [ ] `src/data/base-context.md` — grounding 규칙 + citation `[§id]` 형식 + 수정 도구 호출 조건
 - [ ] `src/data/{prd,discovery,policies,changelog}-context.md` — 레이어 파일
-- [ ] `api/chat.js` — 키 프록시(스트리밍 패스스루), `OPENAI_API_KEY` 환경변수
-- [ ] `src/contexts/InspectionChatContext.tsx` — 스트리밍 파싱 + tool 분기 + saveBody 재사용 + localStorage
+- [ ] `api/chat.js` — 키 프록시(스트리밍 패스스루), `CHAT_API_BASE_URL`·`CHAT_API_KEY` 환경변수, 503·401·502 구조화 응답
+- [ ] `vite.config.ts` — `/api/chat` dev proxy(로컬 dev에서 챗봇을 쓰려면 필수, §5-b)
+- [ ] `.env.local` — `CHAT_API_BASE_URL`·`CHAT_API_KEY`, **`.gitignore` 등재 확인**
+- [ ] `src/contexts/InspectionChatContext.tsx` — 스트리밍 파싱 + tool 분기 + saveBody 재사용 + localStorage + 503 안내 문구
 - [ ] `src/components/InlineDiff.tsx` — jsdiff diffWords
 - [ ] `ChatToggle`·`ChatPanel` — 마크다운 렌더·scope chip·추천질문·diff 카드·중단 버튼
 - [ ] `intentClassifier.ts` **제거** (라우팅 폐기)
-- [ ] (외부 공유 시) save-desc.js에 `expectedOld` stale 검증 추가
+- [ ] (사외 공유 시) save-desc.js에 `expectedOld` stale 검증 추가
+- [ ] (local 선택 시) LLM 서버 담당자에게 **tool calling 파싱 활성 여부** 확인(§1 — 꺼져 있으면 텍스트 수정 기능 불가)
 - [ ] `npm i diff react-markdown remark-gfm rehype-highlight`
