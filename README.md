@@ -6,6 +6,7 @@ Claude Code 스킬(`SKILL.md`) 모음. 특정 회사·제품에 결합되지 않
 |---|---|---|
 | [`prd-flow/`](prd-flow/) | 아이디어 → PRD → 와이어프레임 → 화면 설계서까지 잇는 제품 개발 파이프라인 | "prd-flow 시작" / "PRD 자동 진행" |
 | [`ai-dlc/`](ai-dlc/) | PRD + 화면 사양을 자동 인테이크해 유저스토리 → 설계 → 코드 생성·빌드·테스트 (AWS AI-DLC 방법론) | `/ai-dlc` |
+| [`ax-assessment-runner/`](ax-assessment-runner/) | 시간 제한 PRD 구현 평가에서 Context → Decide → Delegate → Verify → Taste로 문제 정의·P0·검증 증거까지 닫는 경량 실행 프로토콜 | "AI 역량 평가" / "PRD 구현 시험" / "70분 구현" |
 | [`loop-harness/`](loop-harness/) | 정답표 + 기계 판정이 있는 수치 지표를 라운드 단위로 반복 개선하는 하네스 | "loop 하네스" / "검증 루프" |
 | [`ux-researcher/`](ux-researcher/) | 렌더된 화면·유저플로우를 관찰해 UX 개선점을 찾되, 발견과 판정을 분리해 LLM 오탐을 억제하는 리뷰 하네스 | "UX 검토" / "유저플로우 봐줘" |
 | [`bizplan-builder/`](bizplan-builder/) | B2B SaaS·AI 에이전트·IIoT 신사업 사업계획서를 4개 Phase로 나누어 VC·컨설팅 펌 수준의 전문가 페르소나와 정량 가드레일로 검증하며 작성 | "사업계획서 작성" / "BP 만들어" |
