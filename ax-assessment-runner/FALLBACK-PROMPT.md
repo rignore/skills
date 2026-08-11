@@ -1,125 +1,26 @@
-# AX Assessment Runner — Manual Fallback Prompt
+# AX Hackathon Runner — Manual Fallback Prompt
 
-> Skill 자동 로딩을 사용할 수 없는 평가 환경에서만 복사해 첫 프롬프트로 사용한다. Skill이 정상 동작하면 이 프롬프트를 중복 적용하지 않는다.
+> Skill 자동 로딩이 불가능한 환경에서만 사용한다.
 
 ```text
-이번 작업은 시간 제한이 있는 PRD 기반 AI 활용 역량 평가다.
-너의 역할은 코드를 최대한 많이 만드는 것이 아니라, 내가 핵심 판단을 소유한 상태에서 검증 가능한 end-to-end 결과를 만드는 것이다.
+이번 작업은 AX 인재전쟁/기업 과제형 AI 해커톤이다. 목표는 기능 수가 아니라 근거 있는 문제 선택과 검증 가능한 사용자 변화를 제출하는 것이다.
 
-아래 순서를 반드시 따른다.
+Context → Problem Definition → Human Judgment → Scaffolding → Build → Verification → Evidence → Taste → Mock Judge → Submit → Handoff 순서로 진행하라.
 
-Context → Decide → Delegate → Verify → Taste → Evidence
+대회별 차이는 competition profile로 고정하고, 참가자가 2명 이상이면 team operating model에서 workstream·artifact별 Human DRI와 Integration DRI를 먼저 배정하라. 동일 artifact는 한 명과 한 스킬만 Source of Truth로 소유한다.
 
-[공통 원칙]
-1. PRD와 현재 repository를 읽기 전에는 구현하지 마라.
-2. 먼저 Primary user/JTBD, 핵심 문제, functional requirements, acceptance criteria, 기존 stack/재사용 코드, ambiguity, P0/P1/CUT 후보를 정리하라.
-3. PRD에 없는 내용은 사실처럼 추가하지 말고 Assumption으로 표시하라.
-4. 핵심 문제와 P0 범위, 성공 기준은 내가 최종 결정한다. 네가 임의로 확정하지 마라.
-5. P0는 기능 개수가 아니라 하나의 핵심 user journey가 처음부터 끝까지 동작하도록 잡아라.
-6. 내가 범위를 승인한 뒤에는 구현·오류 수정·검증 재실행을 자율적으로 진행하라. 사소한 선택마다 승인받지 마라.
-7. 기존 stack과 architecture를 우선 재사용하라. 불필요한 framework/dependency 교체는 금지한다.
-8. AI의 "완료", "통과" 보고를 증거로 인정하지 않는다. 실제 typecheck/compile, test, build, smoke/E2E action 결과만 PASS 근거로 사용하라.
-9. 실행하지 않은 검증은 PASS가 아니라 NOT VERIFIED로 표시하라.
-10. 시간이 부족하면 검증을 줄이지 말고 P1 → polish → 비핵심 edge case → architecture 개선 순으로 범위를 줄여라.
-11. 후반에는 새 기능을 추가하지 말고 blocker/regression과 제출 가능 상태를 우선하라.
-12. UI가 있다면 마지막에 실제 핵심 user flow를 실행해 입력→처리→결과→상태 변화/다음 action까지 확인하라. 실행할 수 없다면 E2E PASS라고 하지 말고 이유와 대체 증거를 명시하라.
-13. 별도 audit 문서나 장문의 설계 문서는 평가에 명시적으로 필요하지 않으면 만들지 마라.
+1. 본선 진출/수상 목표에서 역산하라. 공식 공지·FAQ·트랙/기업 과제·rubric·제출 폼 원문에서 deadline/timezone, 참가 자격, 허용·금지 도구와 data, 필수 산출물, 심사 기준, IP/privacy 규칙, 제출 방식을 추출하라. 미확인은 UNKNOWN으로 남겨라.
+2. 문제·기업/트랙·도메인·delivery 맥락을 조사하라. 기업 담당자 인터뷰 영상, 공식 IR/문서/기술 블로그, 실제 수치를 우선하고 사실/관계자 의견/가정/unknown과 source·시점을 분리하라. 남은 공백 중 사람이 답해야 할 것만 최대 3개 질문으로 인터뷰하라. 각 질문에 왜 필요한지와 영향받는 결정을 써라.
+3. 트랙/기업이 여러 개면 같은 schema와 시간 상한으로 독립 병렬 탐색하라. 각 트랙에서 최소 2개, 필요하면 전체 12~20개의 Problem Candidate를 만들고 Scout별 상위 2개만 중앙 비교하라. 사용자 pain·근거·기업 fit·검증 가능성·실현 가능성·차별성·demo 명료성·위험으로 비교하라.
+4. 문제 후보부터 AI Judge(공식 rubric·정량·실격)와 Persona Judge(기업 실무자 관점·현업성·첫인상·Taste)가 서로의 결과를 보지 않고 평가하게 하라. disagreement를 보존하라. AI가 최고 점수 후보를 자동 선택하지 말고 상위 2~3개와 반론을 보여준 뒤 사람이 트랙, problem, core hypothesis, success/failure criteria, accepted trade-off를 확정하게 하라.
+5. 확정 후 Primary journey, P0/P1/CUT, Evidence Plan, demo story, dependency fallback을 Build Contract로 만들고 3~6개 task로 쪼개라. 병렬 구현은 파일/module ownership이 겹치지 않을 때만 한다.
+   정형 PRD가 없고 팀 협업이 필요하면 prd-flow를 사용해 문제·페르소나·가치·solution scope·Full PRD를 제품 정의 SoT로 삼아라. Full PRD 이후 ai-dlc를 기술 실행 SoT로 사용할 수 있다. 반복 가능한 기계 지표가 있으면 loop-harness를 적용하되 주관적 심사 점수는 최적화하지 마라.
+6. Scope Lock 뒤에는 Implement → targeted check → minimal fix → re-run을 자율 수행하라. scope·architecture·안전/개인정보/비용 위험이 바뀔 때만 사람에게 다시 올려라.
+7. 실제 type/compile, test, build, API/data smoke test를 실행하라. 미실행은 NOT VERIFIED다. 핵심 가설은 사용자 task, before/after, real/sample data, 인터뷰/관찰 중 적합한 방법으로 실증하고 표본·환경 한계를 기록하라.
+8. 사람이 실제 flow를 주행해 첫 30초 이해도, 다음 행동, 상태·실패 표현, demo 안정성을 판정하게 하라.
+9. 생성 맥락을 받지 않은 AI Judge와 Persona Judge가 공식 rubric, 제출물, prototype, evidence만으로 eligibility, rubric gap, unproven claims, demo risk, top 3 fixes, submit verdict를 독립 판정하게 하라. milestone/commit마다 영향받은 rubric을 재심사하고, hard fail 0 + critical gap 0 + Human Taste 승인까지 반복하라.
+10. 남은 시간 30%에는 feature freeze, 15%에는 submission freeze, 8%에는 code freeze를 적용하라. 파일·링크·권한·분량·팀 정보·license·출처·AI 고지·privacy·clean run·fallback·deadline을 확인하라. receipt 없이는 제출 완료로 보지 마라.
+11. 세션 종료 전 Competition Lock, 사람의 결정, P0 상태, evidence, 변경 파일, 실행법, 검증 결과, 제출 상태, 다음 3개 행동을 HACKATHON-HANDOFF.md에 남겨라.
 
-[Phase 1 — Context]
-아직 구현하지 말고 다음 형식으로만 보고하라.
-
-### Context Pack
-- Primary user/JTBD:
-- Core problem:
-- Core journey:
-- Explicit requirements:
-- Existing stack/reuse:
-- P0 candidates:
-- P1/CUT candidates:
-- Ambiguities/assumptions:
-- Highest implementation risk:
-
-그 다음 네 첫 해석을 스스로 비판해라.
-- 이것이 정말 핵심 문제인가?
-- P0만으로 의미 있는 end-to-end 일이 완료되는가?
-- 가치 대비 구현 난이도가 낮은 항목이 섞였는가?
-- PRD를 확대/축소 해석했는가?
-- 시간이 부족하면 무엇부터 버릴 것인가?
-
-마지막에 다음 Decision Card를 보여주고 멈춰라.
-
-### Problem Gate
-- 핵심 문제:
-- 추천 P0:
-- P1:
-- CUT:
-- 성공 기준: 검증 가능한 2~4개
-- 핵심 trade-off:
-- 추천 범위:
-
-내가 "진행" 또는 수정 범위를 주면 Scope Lock으로 간주한다.
-
-[Phase 2 — Delegate]
-Scope Lock 후 구현 계획을 3~4개 task로만 나눠라.
-각 task는 Requirement / 예상 Files / Done condition / Verify를 가진다.
-그 뒤 승인된 P0를 바로 구현한다.
-
-핵심 우선순위:
-입력 → 처리 → 결과 → 사용자 결정/다음 action → 필요한 상태 저장
-
-UI polish와 P1은 core journey가 동작한 뒤다.
-
-[Phase 3 — Engineering Gate]
-구현 중간에 기능 추가를 멈추고 repository에 실제 존재하는 검증 명령을 찾아 실행하라.
-가능한 순서:
-1. syntax/typecheck/compile
-2. 핵심 targeted test
-3. 기존 unit/integration tests
-4. production build
-5. API/data smoke test
-
-실패하면 실제 error output에서 가장 직접적인 원인을 찾아 최소 수정하고 같은 명령을 재실행하라.
-같은 실패 계열을 두 번 수정해도 진전이 없으면 무작정 반복하지 말고 원인을 재분해하거나 범위를 줄여 P0 제출 가능 상태를 살려라.
-
-Engineering Gate 결과를 표로 남겨라.
-Check | Command/Action | PASS/FAIL/NOT VERIFIED
-
-[Phase 4 — Taste]
-기계 검증 후 UI/서비스의 핵심 user journey를 실제로 주행하라.
-확인:
-- 첫 화면에서 다음 행동이 명확한가
-- 실제 클릭/입력이 동작하는가
-- 데이터/상태가 바뀌는가
-- 결과가 핵심 문제를 해결하는가
-- 필요한 성공/실패/empty/loading 상태가 깨지지 않는가
-
-이 단계에서는 blocker/high severity만 수정하고 새 P1이나 디자인 리뉴얼은 시작하지 마라.
-
-[Phase 5 — Final Evidence]
-마지막 변경 후 regression을 다시 실행하고 아래를 작성하라.
-
-Requirement | Implementation evidence | Verification | PASS/PARTIAL/CUT/NOT VERIFIED
-
-그 다음 최종 보고는 6개만 남겨라.
-1. Core user flow completed
-2. P0 implemented
-3. Verification actually executed
-4. Remaining/partial/cut
-5. Known limitations
-6. Run/demo path
-
-미완료를 숨기지 마라.
-
-[70분일 때 시간 가드]
-- 0~7분 Context
-- 7~12분 Problem Gate와 Scope Lock
-- 12~16분 3~4 task 계획
-- 16~38분 P0 구현
-- 38분: 무조건 기능 추가를 멈추고 첫 Engineering Gate
-- 48분 이후: 기본적으로 P1 금지, P0 안정화
-- 55분: User Gate로 전환
-- 63분: Scope Freeze — 새 기능/대규모 refactor/dependency 추가 금지
-- 67분: Code Freeze — blocker/regression 외 수정 금지
-
-평가 UI가 단계형이고 이전 단계로 돌아갈 수 없으면 각 단계 제출 전에 현재 단계 필수 산출물, 저장 상태, 미완료 여부를 확인하고 다음 단계에서 고칠 수 있다고 가정하지 마라.
+시간이 부족하면 다른 후보 탐색 → P1 → polish → 비핵심 edge path 순으로 줄이고, 검증과 제출 buffer는 보존하라. mock을 real result로 말하거나, 테스트를 삭제해 PASS를 만들거나, 제출 직전 framework를 교체하지 마라.
 ```
