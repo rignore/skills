@@ -1,487 +1,365 @@
 ---
 name: ax-assessment-runner
-description: 시간 제한이 있는 PRD 기반 AI 활용 역량 평가·실무형 구현 시험에서 Context → Decide → Delegate → Verify → Taste 순서로 문제 정의, 범위 결정, 구현, 결정론 검증, 사용자 플로우 확인까지 닫는 실행 스킬. 사용자가 "AI 역량 평가", "AX 평가", "PRD 구현 시험", "Codex 평가", "70분 구현", "실무형 구현 과제", "시간 제한 코딩 과제", "assessment runner"처럼 제한 시간 안에 AI와 서비스를 구현하고 과정까지 평가받는 상황을 말할 때 사용한다. 일반적인 무제한 PRD 구현은 ai-dlc를 사용하며 이 스킬은 발동하지 않는다.
+description: AX 인재전쟁·기업 과제형 AI 해커톤에서 대회 규칙과 기업·도메인 맥락을 조사하고, 1~4인 팀이 여러 트랙의 문제 후보를 병렬 탐색·검증·우선순위화한 뒤, 사람이 핵심 판단을 소유한 상태로 prototype을 구현·실증·심사·제출하는 상위 오케스트레이션 스킬. 사용자가 "AX 인재전쟁", "AI 해커톤", "기업 과제 해커톤", "해커톤 준비", "해커톤 문제 정의", "해커톤 제출", "hackathon runner"처럼 시간 제한 안에 문제 발굴부터 데모·제출까지 진행하려 할 때 사용한다. 대회별 차이는 competition profile template로 주입하며 prd-flow, ai-dlc, loop-harness, ux-researcher, codex-delegate를 단계별 실행 자산으로 조합할 수 있다.
 ---
 
-# AX Assessment Runner
+# AX Hackathon Runner
 
-시간 제한 PRD 구현형 평가에서 **AI가 많이 일한 흔적**이 아니라 **사람이 올바른 기준을 세우고 AI를 통제해 검증 가능한 결과까지 닫은 흔적**을 남기기 위한 경량 실행 프로토콜이다.
-
-기본 루프:
+해커톤의 목표는 기능 수가 아니라 **근거 있는 문제 선택과 검증 가능한 변화**다.
 
 ```text
-Context → Decide → Delegate → Verify → Taste → Evidence
+Context → Problem Definition → Human Judgment → Scaffolding
+→ Build → Verification → Evidence → Taste → Mock Judge → Submit → Handoff
 ```
 
-이 스킬은 `ai-dlc`처럼 완전한 개발 라이프사이클 문서를 만들지 않는다. 평가 시간 자체가 핵심 자원이므로, 문제 정의·P0 범위·실제 구현·검증 증거에 직접 기여하지 않는 문서와 승인 게이트는 제거한다.
+## 운영 원칙
 
-## 핵심 원칙
+1. **Context before solution** — 문제·기업·도메인·심사·제출 맥락을 확인하기 전에 솔루션을 고정하지 않는다.
+2. **Work backward from winning** — 본선 진출·수상·기업 채택이라는 목표에서 rubric, 실격 조건, 필요한 증거를 역산한다.
+3. **Problem candidates, not first idea** — 첫 아이디어를 채택하지 않는다. 복수 후보를 독립 탐색하고 근거로 비교한다.
+4. **Human owns judgment** — AI는 조사·후보·반론·구현을 맡고, 사람은 문제 선택·trade-off·scope·taste·최종 제출을 승인한다.
+5. **Scaffold before scale** — Context Pack, Problem Card, Evidence Plan, task map을 먼저 고정한다. 긴 문서가 아니라 판단을 보존하는 최소 구조만 만든다.
+6. **Evidence over plausibility** — 인터뷰·공개 데이터·관찰·실행 로그·테스트·실제 주행이 없는 주장은 `ASSUMPTION` 또는 `NOT VERIFIED`다.
+7. **End-to-end before breadth** — 입력→처리→결과→사용자 행동까지 닫힌 한 흐름을 먼저 만든다.
+8. **Taste after proof** — 기계 PASS 뒤에 메시지 명료성, 데모 이해도, 상호작용 품질을 사람이 판정한다.
+9. **Time protects verification** — 시간이 줄면 기능을 자르고 검증·제출 시간을 보존한다.
+10. **Handoff is state, not summary** — 세션이 바뀌어도 결정·증거·실행법·다음 행동을 재구성할 수 있게 남긴다.
+11. **One artifact, one owner, one SoT** — 팀원과 스킬이 많아도 같은 산출물을 중복 생성하지 않는다. 각 artifact의 DRI와 Source of Truth를 하나로 고정한다.
 
-1. **Context before Code** — PRD와 현재 코드베이스를 읽기 전에 구현하지 않는다.
-2. **Human owns the judgment** — AI는 후보와 반론을 만든다. 핵심 문제, P0, 성공 기준, 큰 범위 변경은 사용자가 최종 결정한다.
-3. **Smallest valuable end-to-end slice** — 많은 기능을 반쯤 만드는 것보다 핵심 사용자 일이 처음부터 끝까지 완료되는 한 흐름을 먼저 완성한다.
-4. **Evidence over self-report** — "구현했다", "통과했다"는 서술을 증거로 인정하지 않는다. 실제 명령 실행, 테스트, 빌드, 주행 결과만 PASS 근거로 사용한다.
-5. **Autonomy between gates** — 문제 범위가 승인된 뒤의 반복 구현·오류 수정·테스트 재실행은 AI가 자율적으로 수행한다. 사소한 승인 요청으로 시간을 소모하지 않는다.
-6. **Taste after machine pass** — 기계 검증 통과와 좋은 사용자 경험은 다르다. 마지막에는 실제 핵심 유저플로우와 첫인상·직관·상태 전이를 확인한다.
-7. **Timer is a hard constraint** — 시간이 줄수록 범위를 줄이지 검증을 줄이지 않는다. 후반에는 새 기능보다 regression과 제출 가능 상태를 우선한다.
-8. **No documentation theater** — 평가 로그가 이미 과정을 기록한다면 별도 감사로그·상태문서·장문의 설계서를 만들지 않는다. 제출 요구가 있을 때만 문서화한다.
+## 역할과 루프
 
-## 평가 렌즈
+- **Human-IN-the-loop**: 트랙 선택, 문제·사용자 확정, P0, 성공 기준, 위험한 변경, 최종 제출.
+- **Human-ON-the-loop**: Scope Lock 이후 탐색·구현·오류 수정·검증 재실행을 감독하되 사소한 선택마다 승인하지 않는다.
+- **Scout**: 트랙/기업별 Context Pack과 문제 후보를 만든다. 가능하면 서로 독립된 agent/session으로 병렬 실행한다.
+- **Builder**: 승인된 P0를 구현한다.
+- **AI Judge**: 공식 rubric·정량 조건·실격 위험을 기계적으로 판정한다.
+- **Persona Judge**: 기업 실무자/심사위원의 목적·현업성·첫인상·완성도 관점에서 판정한다.
 
-이 스킬의 평가 렌즈는 **공식 채점표가 아니라 작업 품질을 위한 비공식 self-check**다. 공식 평가 기준처럼 주장하지 않는다.
+같은 agent가 Builder와 Judge를 겸해야 한다면 컨텍스트를 새로 구성하고, 자기 설명이 아니라 제출물·증거만 입력으로 사용한다. AI Judge와 Persona Judge도 가능하면 서로의 판정을 보지 않고 먼저 독립 평가한다.
 
-필요 시 `references/evaluation-lenses.md`를 읽는다.
+## Reference 적재
 
-- Problem Definition — 핵심 문제를 좁혔는가
-- Scope Judgment — 시간 대비 P0/non-goal을 잘 잘랐는가
-- Human Control — AI 제안과 사람의 최종 판단이 구분되는가
-- Evidence — 주장에 실행 증거가 있는가
-- End-to-End Value — 사용자가 실제 일을 끝낼 수 있는가
-- Roadmapping — 구현→검증→수정 순서가 합리적인가
-
-## Reference 적재 규칙
-
-| 파일 | 언제 읽나 | 용도 |
+| 파일 | 읽는 시점 | 목적 |
 |---|---|---|
-| `references/70m-preset.md` | 총 시간이 60~90분이거나 사용자가 "70분"을 명시 | 70분 기본 시간 배분·scope freeze·rescue rule |
-| `references/evaluation-lenses.md` | Problem Gate, 최종 Evidence Gate | 비공식 평가 렌즈·실격성 안티패턴 점검 |
+| `references/context-and-problem.md` | Phase 1~2 | 조사 깊이, 후보 카드, 병렬 탐색·우선순위 규약 |
+| `references/timebox-and-submission.md` | Phase 0 및 종료 20% | 비율 기반 시간 운영, 제출·실격 체크 |
+| `references/evaluation-lenses.md` | Phase 2, 7 | 문제 선택·Mock Judge 렌즈 |
+| `references/composition-and-team.md` | Phase 0, 4 | 1~4인 팀 운영과 기존 스킬 조합 규약 |
 
-레퍼런스를 한 번에 모두 적재하지 않는다. 해당 게이트에 도달했을 때만 읽는다.
+필요한 시점에만 읽는다.
 
----
+## Competition Pack
 
-# Phase 0 — Assessment Setup
+대회별 차이를 SKILL 본문에 하드코딩하지 않는다. Phase 0에서 다음 템플릿을 프로젝트의 `hackathon/` 디렉토리로 복사해 채운다.
 
-## 목적
+| Template | Project artifact | 용도 |
+|---|---|---|
+| `templates/competition-profile.md` | `hackathon/competition-profile.md` | 규칙·목표·도메인 lane·단계 override |
+| `templates/team-operating-model.md` | `hackathon/team-operating-model.md` | 1~4인 역할·ownership·sync |
+| `templates/judge-pack.md` | `hackathon/judge-pack.md` | AI/Persona Judge와 종료 조건 |
+| `templates/submission-ledger.md` | `hackathon/submission-ledger.md` | 단계별 제출·실격·receipt |
 
-시험 규칙과 시간 제약을 코드 요구사항과 동급의 hard constraint로 고정한다.
-
-## 입력
-
-가능한 범위에서 다음을 읽는다.
-
-- 시험/평가 안내문
-- 현재 단계의 지시문
-- PRD 또는 요구사항 파일
-- 현재 repository/workspace
-- 남은 시간 또는 단계별 타이머
-
-## 실행
-
-1. 평가 규칙에서 다음을 추출한다.
-   - 총 시간 / 현재 단계 시간
-   - 허용 도구
-   - 금지 도구·외부 검색 제한
-   - 이전 단계 복귀 가능 여부
-   - 자동 제출 여부
-   - 필수 산출물
-2. **시험 규칙이 일반 개발 관행보다 우선한다.**
-3. 외부 문서·검색이 금지되면 절대 사용하지 않는다. 에이전트 자체 웹 검색이 명시적으로 허용된 경우에도 구현 blocker 또는 요구사항 사실 확인에만 제한적으로 사용하고 일반 리서치로 시간을 소비하지 않는다.
-4. 60~90분 평가라면 `references/70m-preset.md`를 읽고 타임박스를 적용한다.
-5. 시간이 명시되지 않으면 아래 비율을 사용한다.
-   - Context + Decide: 20%
-   - Core implementation: 35%
-   - Engineering verification + fix: 25%
-   - User flow + final evidence: 20%
-
-## 출력
-
-장문 계획 대신 다음 5줄 이내로만 시작 상태를 선언한다.
-
-```text
-Assessment mode: [총 시간/현재 단계]
-Hard constraints: [핵심 규칙]
-Current workspace: [greenfield/brownfield + stack]
-Primary objective: [한 줄]
-Next: Context scan — 구현은 아직 시작하지 않음
-```
-
-### Stage boundary mode
-
-평가 UI가 여러 단계로 나뉘고 이전 단계로 돌아갈 수 없다면 각 단계 종료 전 반드시 **Stage Close Check**를 실행한다.
-
-- 현재 단계의 필수 입력을 모두 반영했는가
-- 저장/제출 대상이 실제로 존재하는가
-- 다음 단계에서 고칠 수 있다고 가정하고 미완료 상태를 넘기고 있지 않은가
-- 제출 직전 큰 수정은 하지 않았는가
+공식 preset이 있으면 generic template 대신 해당 preset을 `competition-profile.md`의 초안으로 사용한다. `templates/2026-finance-ai-challenge-profile.md`는 2026 금융 AI Challenge용 시작점이다. preset의 날짜·규정·URL은 실행 시 공식 원문으로 재검증하고 `last_verified_at`을 갱신한다.
 
 ---
 
-# Phase 1 — Context Scan
+# Phase 0 — Competition Lock
 
-## 목적
+대회 공지·공식 FAQ·트랙/기업 과제·rubric·제출 폼의 **원문**을 먼저 읽는다. 요약만으로 규칙을 대체하지 않고 추측으로 빈칸을 채우지 않는다. 목표 결과에서 역산해 어떤 evidence와 artifact가 최종 판정을 통과시켜야 하는지 정한다.
 
-코드를 쓰기 전에 **무엇을 왜 만들어야 하는지와 이미 무엇이 있는지**를 짧고 정확하게 파악한다.
-
-## 실행
-
-아직 구현하지 않는다.
-
-### A. PRD에서 추출
-
-- Primary user / persona
-- 사용자가 완료하려는 핵심 JTBD
-- 핵심 pain/problem
-- 명시적 functional requirements
-- acceptance criteria로 변환 가능한 문장
-- 정책·제약·non-goal
-- 애매하거나 충돌하는 요구사항
-- PRD에 없는 추정이 필요한 부분
-
-### B. repository에서 추출
-
-- greenfield / brownfield
-- 실제 framework / language / package manager
-- 기존 scripts와 테스트 명령
-- 재사용 가능한 component/service/model
-- 기존 architecture와 naming convention
-- 변경 위험이 큰 영역
-
-### C. Scope 후보
-
-요구사항을 세 그룹으로 분류한다.
-
-- **P0** — 핵심 사용자 일을 end-to-end 완료하는 데 필수
-- **P1** — P0가 안정적일 때 추가
-- **CUT** — 시간 대비 가치가 낮거나 core journey와 무관
-
-## 출력 — Context Pack
+다음을 `Competition Lock`으로 고정한다.
 
 ```markdown
-### Context Pack
-- Primary user/JTBD: ...
-- Core problem: ...
-- Core journey: A → B → C
-- Existing stack/reuse: ...
-- P0 candidates: ...
-- P1/CUT candidates: ...
-- Ambiguities/assumptions: ...
-- Highest implementation risk: ...
+- Deadline / timezone:
+- Track/company choices:
+- Eligibility/team rules:
+- Required deliverables and format:
+- Allowed/prohibited tools, data, APIs:
+- Judging criteria and weights:
+- IP/privacy/open-source constraints:
+- Submission channel and edit policy:
+- Demo environment constraints:
+- Unknowns requiring organizer confirmation:
 ```
 
-증거가 없는 내용은 `Assumption`으로 표시한다. PRD에 없는 요구사항을 사실처럼 추가하지 않는다.
+`references/timebox-and-submission.md`에서 전체 시간에 맞는 비율을 적용한다. 규칙 미확인 사항은 `UNKNOWN`으로 남기고, 실격 가능성이 있으면 구현보다 먼저 해소한다.
+
+이어서 `references/composition-and-team.md`를 읽고 참가 인원·역량·가용 시간을 기준으로 `team-operating-model.md`를 확정한다. 2명 이상이면 개인별 역할명보다 **workstream과 artifact ownership**을 먼저 배정한다.
 
 ---
 
-# Phase 2 — Problem Gate / Human Decision
+# Phase 1 — Context Acquisition
 
-## 목적
+`references/context-and-problem.md`를 읽고 다음 4개 층을 조사한다.
 
-잘못 정의된 문제를 빠르게 구현하는 것을 차단한다. **이 스킬의 핵심 Human-IN-the-loop 게이트다.**
+1. **Problem** — 누가, 어떤 상황에서, 어떤 job을 수행하다 무엇 때문에 실패하는가.
+2. **Company/track** — 기업의 고객·제품·사업모델·전략·제공 자산·과제 의도.
+3. **Domain** — workflow, 이해관계자, 규제·안전·데이터 제약, 현재 대안과 전환 비용.
+4. **Delivery** — 팀 역량, 사용 가능한 data/API, 구현 시간, demo 환경, 제출 요구.
 
-## 2-1. Adversarial check
+컨텍스트 공백을 agent가 먼저 찾게 한다. 답이 repository·공식 자료·웹에 없고 사람의 경험·선호·관계자 정보가 필요한 경우, agent는 사용자에게 최대 3개의 높은 레버리지 질문을 한 번에 묻는다. 질문마다 `왜 필요한가 / 답에 따라 무엇이 달라지는가`를 붙인다. 기업 담당자 인터뷰 영상·발언은 transcript/요약을 확보하되, 발언 시점과 화자를 보존하고 추론과 분리한다.
 
-Context Pack의 첫 해석을 그대로 믿지 말고 스스로 반론을 만든다.
+근거 우선순위:
 
-다음을 확인한다.
+```text
+공식 대회/기업 자료 → 사용자·현업 1차 정보 → 공신력 있는 통계/논문
+→ 제품·경쟁사 관찰 → 합리적 추론
+```
 
-1. 이것이 정말 PRD에서 가장 중요한 사용자 문제인가?
-2. 제안한 P0만 구현해도 사용자가 의미 있는 일을 처음부터 끝까지 완료할 수 있는가?
-3. 구현 난이도 대비 가치가 낮은 기능이 P0에 섞였는가?
-4. PRD 요구를 잘못 확대·축소한 부분이 있는가?
-5. 시간이 부족하면 어떤 기능부터 자를 것인가?
-6. 성공 기준이 관찰·테스트 가능한가?
+각 주장에 source와 확인 시점을 남긴다. 외부 검색이 허용되지 않으면 제공 자료와 repository만 사용하고 공백을 명시한다.
 
-`references/evaluation-lenses.md`의 Problem Definition / Scope Judgment 항목을 읽어 대조한다.
+출력은 트랙별 `Context Pack`이다.
 
-## 2-2. Decision Card
+```markdown
+### Context Pack — [track/company]
+- Target user / buyer / beneficiary:
+- Job and current workflow:
+- Pain evidence and frequency/severity:
+- Existing alternatives and gap:
+- Company/track fit:
+- Available assets/data/API:
+- Constraints and risks:
+- Facts / assumptions / unknowns:
+- Sources:
+```
 
-사용자에게 **한 번의 짧은 결정**만 요청한다.
+---
+
+# Phase 2 — Parallel Problem Discovery
+
+트랙이나 기업이 둘 이상이면 각 Scout에 같은 출력 schema와 시간 상한을 주고 **병렬 탐색**한다. 사람 Scout와 agent Scout를 같은 규약으로 다룬다. 각 workstream에 DRI를 한 명만 두고 같은 workspace 파일을 동시에 수정하지 않게 한다. 결과는 후보 카드만 반환하게 한다. 병렬 실행 수단이 없으면 동일 schema로 순차 실행하되 시간 상한은 유지한다.
+
+각 트랙에서 최소 2개의 Problem Candidate를 만든다. 기업/트랙 수가 많으면 전체 후보를 12~20개까지 넓힐 수 있으나, Scout별 상위 후보만 중앙 비교표로 올린다. 후보는 solution 이름이 아니라 사용자 상태 변화로 쓴다.
+
+각 후보를 다음으로 검증한다.
+
+- 실제 사용자의 반복·고비용 문제인가
+- 현재 대안이 왜 충분하지 않은가
+- 기업/트랙과 구조적으로 맞는가
+- 제한 시간 안에 핵심 가설을 실증할 수 있는가
+- 필요한 data/access를 확보할 수 있는가
+- demo에서 전후 차이를 이해시킬 수 있는가
+- privacy/safety/IP/규칙 위험은 무엇인가
+
+독립 반론을 한 번 붙인 뒤 다음 기준으로 상대 비교한다. 숫자는 정밀한 사실이 아니라 **비교 도구**이며 근거 문장이 우선한다.
+
+| Criterion | 질문 |
+|---|---|
+| User pain | 빈도·심각도·현재 비용이 입증되는가 |
+| Evidence strength | 1차/공식 근거가 있는가 |
+| Sponsor fit | 기업 자산·과제와 결합 이유가 있는가 |
+| Testability | 해커톤 안에 핵심 가설을 검증할 수 있는가 |
+| Feasibility | team/time/data/API 제약 안에서 가능한가 |
+| Differentiation | 기존 대안 대비 변화가 선명한가 |
+| Demo clarity | 짧은 demo로 before/after가 보이는가 |
+| Risk | 실격·법무·안전·의존성 위험이 감당 가능한가 |
+
+AI가 최고 점수 후보를 자동 채택하지 않는다.
+
+---
+
+# Phase 3 — Problem Gate / Human Judgment
+
+후보 전부를 먼저 동일 rubric으로 AI Judge와 Persona Judge가 독립 평가한다. 점수에는 근거, confidence, hard-fail 여부를 붙인다. 두 Judge의 순위가 크게 다르면 평균으로 덮지 말고 disagreement와 그 원인을 사람에게 올린다. 상위 2~3개만 최종 Human Gate에 제시한다.
 
 ```markdown
 ### Problem Gate
-- 핵심 문제: ...
-- P0: R1, R2, R4
-- P1: R3
-- CUT: R5
-- 성공 기준: [검증 가능한 2~4개]
-- 가장 큰 trade-off: ...
-- 추천: [추천 범위]
+| Candidate | User/problem | Evidence | Test in event | Sponsor fit | Main risk |
+|---|---|---|---|---|---|
 
-`진행`하면 이 범위를 고정하고 구현한다. 수정할 항목만 말해도 된다.
+Recommendation: ...
+Why now: ...
+Rejected alternative and why: ...
+Decision needed: track / problem / accepted trade-off
 ```
 
-### 게이트 규칙
+사람이 다음을 확정하면 `Problem Lock`한다.
 
-- 사용자가 `진행` 또는 동등한 승인을 하면 P0를 **Scope Lock**한다.
-- 사용자가 이미 명시적으로 P0·성공 기준을 지정했다면 다시 묻지 말고 그 판단을 Human Decision으로 기록한다.
-- 사용자가 `자동 진행`을 명시한 경우에만 추천 범위를 자동 승인으로 간주한다.
-- 구현을 막는 불확실성 외에는 추가 질문을 쌓지 않는다.
-- 이후 P0 밖으로 범위를 넓히려면 P0가 Engineering Gate를 통과한 뒤에만 한다.
+- 한 명확한 primary user와 context
+- 검증된 problem statement
+- 핵심 가설
+- 성공/실패 기준
+- 선택한 트랙/기업과 연결 이유
+
+문제 근거가 약하면 구현으로 넘어가지 말고 짧은 인터뷰·관찰·data check를 먼저 수행한다. 확정되지 않은 후보는 backlog로만 남긴다.
 
 ---
 
-# Phase 3 — Scaffold & Delegate
+# Phase 4 — Evidence-first Scaffolding
 
-## 목적
+솔루션을 가장 작은 검증 가능한 slice로 바꾼다.
 
-승인된 범위를 3~4개의 실행 가능한 task로 쪼개고, 이후 반복 실행은 AI에게 위임한다.
-
-## Task 설계 규칙
-
-각 task에 아래 4요소만 둔다.
-
-```text
-Task N
-- Requirement: 어떤 P0를 구현하는가
-- Files: 예상 수정/생성 경로
-- Done: 사용자가 무엇을 할 수 있어야 하는가
-- Verify: 어떤 명령/행동으로 확인할 것인가
+```markdown
+### Build Contract
+- Problem statement:
+- Core hypothesis:
+- Primary journey: Start → Input → Processing → Result → Action
+- P0 / P1 / CUT:
+- Success signals:
+- Evidence to collect:
+- Demo story:
+- Technical reuse/stack:
+- Top dependency and fallback:
 ```
 
-### 가드레일
+Problem Lock 이후 사용할 기존 자산을 먼저 선택한다. `references/composition-and-team.md`의 routing을 적용하고 선택한 스킬 산출물을 해당 phase의 SoT로 선언한다. 같은 내용의 AX artifact를 다시 만들지 않는다.
 
-- 3~4개 task를 기본으로 한다. 작은 시험에서 10개 이상의 작업 분해는 planning overhead로 간주한다.
-- 기존 stack·architecture·component를 우선 재사용한다.
-- 단지 익숙하다는 이유로 framework/package manager를 교체하지 않는다.
-- 새 dependency는 core journey에 실질적으로 필요할 때만 추가한다.
-- brownfield에서는 기존 파일이 있으면 in-place 수정한다. `_new`, `_fixed`, `_v2` 복사본을 만들지 않는다.
-- UI polish보다 **입력 → 처리 → 결과 → 다음 행동/상태 저장** 연결을 먼저 완성한다.
-
-## 실행 모드 — Human ON the loop
-
-Scope Lock 이후에는 다음 루프를 자율 수행한다.
+3~6개 work package로 나눈다.
 
 ```text
-Implement → Run targeted check → Fix from evidence → Re-run
+Work Package N — Requirement | Human DRI | Agent/skill | Files | Dependencies | Done | Verify | Evidence
 ```
 
-사소한 구현 선택마다 승인을 기다리지 않는다. 다음 상황만 사용자에게 다시 올린다.
-
-- P0 범위를 바꿔야 함
-- 큰 architecture 변경이 필요함
-- 데이터 손실·보안·파괴적 변경 위험
-- 시험 규칙과 충돌 가능성
+병렬 구현은 파일·module·산출물 ownership이 독립일 때만 한다. 공유 파일이나 선행 contract가 필요한 작업은 먼저 interface/schema를 잠그거나 순차 실행한다. 한 명을 Integration DRI로 지정하고 병렬 결과를 통합한 뒤 전체 회귀를 실행한다. Integration DRI는 모든 코드를 직접 작성하는 사람이 아니라 contract·merge order·release state를 소유하는 사람이다.
 
 ---
 
-# Phase 4 — Engineering Gate
+# Phase 5 — Build / Human-ON-the-loop
 
-## 목적
+Scope Lock 이후 다음 루프를 자율 실행한다.
 
-AI의 자기보고가 아니라 실제 실행 결과로 구현을 판정한다.
+```text
+Implement → targeted check → inspect evidence → minimal fix → re-run
+```
 
-## 4-1. 실제 검증 명령 발견
+- 기존 stack·component·API를 우선 재사용한다.
+- 실제 data가 없으면 mock임을 표시하고, mock으로 검증할 수 없는 가설을 분리한다.
+- UI보다 핵심 data/action path를 먼저 연결한다.
+- P0 Engineering Gate 전 P1을 열지 않는다.
+- scope, architecture, 안전·개인정보·비용 위험이 바뀔 때만 Human-IN gate로 되돌아간다.
 
-repository를 보고 존재하는 명령을 사용한다. 이름을 추측하지 않는다.
+---
 
-예:
+# Phase 6 — Verification, Evidence, Taste
 
-- JS/TS: `package.json` scripts, lockfile 기준 package manager
-- Python: `pyproject.toml`, `requirements*.txt`, `pytest` 설정
-- 기타 stack: 기존 build/test configuration
+## Engineering Gate
 
-## 4-2. 검증 우선순위
+repository에 실제 존재하는 명령을 찾아 다음 중 가능한 것을 실행한다.
 
-가능한 항목을 실제 실행한다.
-
-1. syntax/typecheck/compile
-2. 핵심 로직 targeted test
-3. 기존 unit/integration tests
+1. type/compile
+2. 핵심 rule targeted test
+3. unit/integration test
 4. production build
-5. 핵심 API 또는 데이터 흐름 smoke test
+5. API/data smoke test
 
-테스트가 전혀 없고 시간이 허용되면 **핵심 P0 business rule 한두 개**를 검증하는 최소 테스트를 추가한다. coverage 숫자를 채우기 위한 테스트는 만들지 않는다.
+실행하지 않은 항목은 `NOT VERIFIED`다. 실패를 고친 뒤 같은 명령을 다시 실행한다.
 
-## 4-3. Evidence Fix Loop
+## Field Evidence
 
-실패 시:
+핵심 가설에 맞는 실증을 수행한다.
 
-1. 실제 error output을 읽는다.
-2. 가장 직접적인 원인 가설 하나를 세운다.
-3. 최소 범위를 수정한다.
-4. **같은 검증 명령을 다시 실행한다.**
+- 실제/대표 사용자 task completion
+- before/after time, error, steps 또는 decision quality
+- real/sample data 결과 비교
+- 사용자 관찰·인터뷰·feedback
+- 실패/edge condition
 
-같은 실패 계열을 두 번 수정해도 진전이 없으면 무작정 반복하지 않는다. 원인을 다시 분해하거나 P1/CUT을 제거해 P0 제출 가능 상태를 확보한다.
+표본과 환경 한계를 함께 기록한다. demo가 곧 validation은 아니다.
 
-## PASS 규칙
+## Taste Gate
 
-- 실행하지 않은 검증은 `PASS`가 아니라 `NOT VERIFIED`다.
-- 테스트를 수정해서 통과시켰다면 요구사항을 약화한 것이 아닌지 확인한다.
-- "should work", "looks correct", "likely passes"를 증거 문구로 쓰지 않는다.
+사람이 실제 핵심 flow를 주행하고 다음을 판정한다.
 
-## 출력 — Engineering Evidence
+- 첫 30초 안에 문제와 가치가 이해되는가
+- 다음 행동과 결과가 명확한가
+- 중요한 상태·실패·불확실성을 숨기지 않는가
+- 기술이 아니라 사용자 변화가 중심인가
+- 심사 demo가 안정적으로 재현되는가
+
+정밀 UX 진단이 필요하고 시간이 허용되면 `ux-researcher`를 별도 호출한다. 이 스킬 안에서는 demo blocker와 핵심 flow만 본다.
+
+---
+
+# Phase 7 — Two-way Mock Judge
+
+`references/evaluation-lenses.md`를 읽는다. Mock Judge에게 다음만 준다.
+
+- 공식 rubric과 제출 요구
+- Problem/Build Contract
+- 실행 가능한 prototype 또는 영상
+- evidence와 verification log
+- pitch/deck/submission draft
+
+Builder의 의도·변명·자기평가는 주지 않는다. 두 Judge를 독립 실행한다.
+
+- **AI Judge**: rubric weight, 형식, traceability, 실행 증거, 실격 조건, unproven claim.
+- **Persona Judge**: 기업 실무자 관점의 문제 중요도, 현업 적용성, 첫인상, 직관, 완성도, Taste.
+
+두 결과를 병합하되 판정 충돌을 보존한다. 각 Judge는 다음을 반환한다.
 
 ```markdown
-### Engineering Gate
-| Check | Command/Action | Result |
+### Mock Judge
+- Eligibility / disqualification: PASS | FAIL | UNKNOWN
+- Rubric-by-rubric verdict: evidence / gap / severity
+- Unproven claims:
+- Demo failure risks:
+- Top 3 fixes by score impact:
+- Submit / conditional submit / do not submit:
+```
+
+결정론 체크(파일 존재, 길이, build/test, 링크 접근, 영상 재생)는 agent 판단보다 우선한다. 구현 milestone 또는 commit마다 영향받은 rubric을 재심사하고, 제출 전에는 전체 심사를 반복한다. 횟수 자체를 목표로 삼지 말고 `hard fail 없음 + critical gap 없음 + 사람이 Taste 승인`까지 반복한다. 수정 후 관련 검증과 두 Judge를 다시 실행한다.
+
+---
+
+# Phase 8 — Submission Freeze
+
+`references/timebox-and-submission.md`의 체크리스트를 적용한다.
+
+- 요구 파일·링크·권한·형식·분량·언어·팀 정보 확인
+- 라이선스·출처·AI 사용 고지·개인정보 확인
+- clean environment에서 실행법 확인
+- 마지막 변경 후 regression과 demo rehearsal 재실행
+- backup video/screenshots와 fallback demo path 준비
+- deadline/timezone 전에 제출하고 receipt를 보존
+
+Freeze 이후에는 실격·blocker·regression만 수정한다. 제출 성공 화면/메일/ID가 없으면 제출 완료로 간주하지 않는다.
+
+---
+
+# Phase 9 — Handoff
+
+세션 종료·담당 변경·장시간 중단 전에 `HACKATHON-HANDOFF.md`를 갱신한다.
+
+```markdown
+# Hackathon Handoff
+- Competition Lock + remaining time
+- Selected problem and rejected alternatives
+- Human decisions and accepted trade-offs
+- P0/P1/CUT and current status
+- Evidence collected / missing
+- Changed files and run commands
+- Verification results and known failures
+- Submission checklist status
+- Exact next 3 actions
+- Risks, credentials/access needed, owners
+```
+
+팀 작업이면 workstream별 handoff를 따로 늘어놓지 않고 Integration DRI가 공용 handoff에 병합한다. 각 항목에는 `owner / last updated / next action / blocker`를 남긴다.
+
+프로젝트에 기존 handoff/status 규약이 있으면 그 경로를 사용한다. 장문의 세션 요약이 필요하면 `handoff-writer`를 호출하되, 이 스킬의 실행 상태 필드는 유지한다.
+
+## 기존 자산과의 조합 원칙
+
+기존 스킬을 기본적으로 배제하지 않는다. `ax-assessment-runner`는 대회 규칙·시간·팀·심사·제출을 소유하고, 전문 스킬은 선택된 phase의 실행과 산출물을 소유한다.
+
+| 스킬 | 조합 지점 | SoT / 제한 |
 |---|---|---|
-| Type/Compile | `...` | PASS/FAIL |
-| Tests | `...` | PASS/FAIL/NOT VERIFIED |
-| Build | `...` | PASS/FAIL/NOT VERIFIED |
+| `prd-flow` | Context 이후 문제 정의·페르소나·가치 가설·solution scope·Full PRD | `prd-flow/{slug}/`를 제품 정의 SoT로 사용한다. AX Problem/Build Contract와 중복 작성하지 않고 필요한 필드만 링크한다. 팀의 research/product workstream에 우선 권장한다. |
+| `ai-dlc` | Full PRD 또는 Build Contract 확정 후 설계·구현·테스트 | `aidlc-docs/`와 code를 기술 실행 SoT로 사용한다. 해커톤 시간·제출 gate는 AX가 계속 소유한다. 짧은 대회에서는 full lifecycle overhead를 비교하고 선택한다. |
+| `loop-harness` | 정확도·latency·cost·task completion처럼 반복 측정 가능한 핵심 가설 최적화 | 정답표·기계 판정이 있는 지표에만 사용한다. 주관적 우승 가능성이나 Persona Judge 점수를 정답표처럼 최적화하지 않는다. |
+| `ux-researcher` | 통합 MVP의 대표 flow가 나온 뒤 정밀 UX 검증 | UX finding을 evidence register에 연결한다. 제출 직전 시간이 부족하면 AX Taste Gate만 사용한다. |
+| `codex-delegate` | 독립 work package를 별도 Codex CLI에 자립 SPEC으로 위임 | 해당 package의 실행 수단일 뿐 제품 판단·팀 통합·제출 owner가 아니다. |
 
-Remaining blocker: ...
-```
+조합 시 precedence는 `공식 대회 규칙 > competition profile > AX phase gate > 전문 스킬 workflow > 일반 개발 관행` 순서다.
 
----
+## 종료 조건
 
-# Phase 5 — User Gate / Taste
+다음을 모두 만족해야 종료한다.
 
-## 목적
-
-기계적으로 맞는 코드가 아니라 **사용자가 실제 일을 완료할 수 있는 서비스**인지 확인한다.
-
-## 실행
-
-UI가 있는 서비스라면 가능한 브라우저/앱 실행 수단을 사용해 실제 핵심 플로우를 주행한다.
-
-```text
-Start state
-→ 핵심 입력
-→ 주요 action
-→ 결과 확인
-→ 상태 변화/저장
-→ 다음 action 또는 완료
-```
-
-확인 항목:
-
-- 첫 화면에서 다음 행동이 명확한가
-- 실제 클릭/입력이 동작하는가
-- 데이터/상태가 예상대로 바뀌는가
-- 성공·실패·빈 상태가 깨지지 않는가
-- 새로고침/재진입 후 유지되어야 할 상태가 유지되는가
-- P0의 핵심 가치가 화면/결과에서 실제로 드러나는가
-
-브라우저 자동화가 없거나 시험 규칙상 사용할 수 없으면 그 한계를 명시하고 API/컴포넌트 테스트 등 가능한 대체 증거를 사용한다. **주행하지 않았는데 E2E PASS라고 쓰지 않는다.**
-
-### Taste Gate
-
-기계 검증이 통과한 뒤 다음만 수정한다.
-
-- 핵심 flow blocker
-- 오해를 유발하는 정보 구조
-- 주요 action이 보이지 않는 문제
-- 명백한 loading/error/empty-state 결함
-
-이 단계에서 새로운 P1 기능이나 대규모 디자인 리뉴얼을 시작하지 않는다.
-
----
-
-# Phase 6 — Final Evidence / Freeze
-
-## 목적
-
-PRD → 구현 → 검증 사이의 traceability를 남기고 제출 직전 회귀를 막는다.
-
-## 6-1. Requirement Traceability
-
-```markdown
-| Requirement | Implementation evidence | Verification | Status |
-|---|---|---|---|
-| R1 | `src/...` | test/build/flow | PASS |
-| R2 | `src/...` | ... | PARTIAL |
-| R3 | — | — | CUT |
-```
-
-- 검증하지 못한 것은 PASS 금지.
-- 미완료 항목과 limitation을 숨기지 않는다.
-- PRD의 핵심 요구사항이 표에서 누락되면 제출 전에 확인한다.
-
-## 6-2. Regression
-
-변경 이후 최소한의 최종 typecheck/test/build를 다시 실행한다. 이전 PASS 결과를 그대로 재사용하지 않는다.
-
-## 6-3. Freeze
-
-제출 직전에는:
-
-- 새 feature 금지
-- dependency 교체 금지
-- 대규모 refactor 금지
-- cosmetic-only 변경 금지
-- blocker/regression만 수정
-
-## 최종 보고
-
-```markdown
-### Final Evidence
-1. Core user flow completed: ...
-2. P0 implemented: ...
-3. Verification actually executed: ...
-4. Remaining/partial/cut: ...
-5. Known limitations: ...
-6. Run/demo path: ...
-```
-
-설명보다 증거를 우선한다.
-
----
-
-# Rescue Rules
-
-시간 압박이나 구현 실패가 발생하면 다음 순서로 회복한다.
-
-1. **P1 즉시 중단**
-2. P0 중 핵심 journey와 무관한 항목 제거
-3. architecture 개선보다 현재 stack에서 동작 복구
-4. happy path를 먼저 살리고 critical error path만 유지
-5. 제출 가능한 상태 확보 후 검증
-6. 시간이 남을 때만 polish
-
-다음 행동은 금지한다.
-
-- 실패했다고 framework 전체 교체
-- 테스트를 삭제해 PASS 만들기
-- 요구사항을 임의로 완화해 PASS 만들기
-- 새로운 기능으로 기존 blocker를 가리기
-- 검증 없이 "완료" 선언
-
-70분 평가의 구체적 cut-off는 `references/70m-preset.md`를 따른다.
-
----
-
-# 자가 검증 체크리스트
-
-스킬 종료 전 확인한다.
-
-```text
-[ ] PRD와 repo를 구현 전에 읽었다
-[ ] 핵심 문제와 P0를 사람의 판단으로 확정했다
-[ ] P0가 하나의 end-to-end user journey를 완성한다
-[ ] 구현 task가 3~4개 수준으로 작게 유지됐다
-[ ] 실제 type/test/build 중 가능한 검증을 실행했다
-[ ] 실행하지 않은 검증을 PASS라고 하지 않았다
-[ ] 핵심 flow를 실제 주행했거나, 불가능한 이유와 대체 증거를 남겼다
-[ ] Requirement ↔ Implementation ↔ Verification 추적이 된다
-[ ] 미완료 항목을 명시했다
-[ ] 후반에 새 scope를 벌리지 않았다
-```
-
----
-
-## 트리거 키워드
-
-다음 표현에서 강하게 트리거한다.
-
-- "AI 역량 평가", "AI 활용 역량 평가", "AX 평가", "AX 역량"
-- "PRD 구현 시험", "PRD 받아서 구현하는 시험"
-- "Codex 평가", "Codex 시험", "코덱스 시험"
-- "70분 구현", "1시간 안에 구현", "시간 제한 구현"
-- "실무형 구현 과제", "AI 코딩 평가", "AI 활용 시험"
-- "assessment runner", "timed PRD implementation", "coding assessment"
-
-### 부정 트리거
-
-다음에는 발동하지 않는다.
-
-- 일반 프로젝트에서 PRD를 받아 시간 제한 없이 구현 → `ai-dlc`
-- 단순 기능 하나 코드 작성/버그 수정 → 직접 구현
-- 반복 수치 최적화/통계 검증 → `loop-harness`
-- 이미 구현된 제품의 정밀 UX 진단 → `ux-researcher`
-- Claude가 설계하고 별도 Codex CLI에 위임 → `codex-delegate`
-
----
-
-## 다른 스킬과의 관계
-
-| 스킬 | 관계 |
-|---|---|
-| `ai-dlc` | 요구사항→설계→구현→테스트의 원칙을 차용하지만, 시간 제한 평가에서는 문서·다중 승인 게이트 overhead 때문에 **이 스킬이 우선**한다. 전체 ai-dlc를 중첩 실행하지 않는다. |
-| `codex-delegate` | SPEC 자립성·결정론 검증 원칙을 차용한다. Codex-only 평가에서는 외부 Claude/Codex 이중 오케스트레이션을 호출하지 않는다. |
-| `ux-researcher` | 실제 화면·유저플로우 관찰 원칙만 경량 적용한다. 평가 중 full UX research harness는 호출하지 않는다. |
-| `loop-harness` | evaluator/self-report 불신 원칙만 적용한다. 짧은 평가에서 통계 라운드 하네스 전체를 돌리지 않는다. |
-
-### 우선순위 규칙
-
-**시간 제한 + 평가/시험 + PRD 구현**이 동시에 있으면 `ax-assessment-runner`가 위 스킬보다 우선한다.
+- 공식 규칙과 제출 요구가 출처와 함께 고정됐다.
+- 복수 문제 후보를 비교했고 사람의 선택 근거가 남았다.
+- P0 user journey가 실제로 실행된다.
+- 핵심 가설에 대한 실증과 한계가 남았다.
+- 기계 검증과 Mock Judge를 통과했거나 gap을 명시했다.
+- 제출 receipt가 보존됐다.
+- 다음 세션이 재탐색 없이 이어갈 handoff가 있다.
