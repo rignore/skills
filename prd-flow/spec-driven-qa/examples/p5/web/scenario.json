@@ -1,0 +1,63 @@
+{
+  "schema_version": "scenario-v1",
+  "id": "p5-public-todomvc-heading",
+  "title": "Public TodoMVC heading is visible",
+  "source_refs": [
+    {"source_id": "public-todomvc-spec", "anchor_id": "todo-heading-visible"}
+  ],
+  "method": "web",
+  "preconditions": [],
+  "fixture": {
+    "kind": "none",
+    "ref": "public-read-only-page",
+    "purpose": "baseline",
+    "destructive": false,
+    "environment": "shared_test"
+  },
+  "steps": [
+    {
+      "id": "open-home",
+      "action": "navigate",
+      "description": "Open the public TodoMVC route",
+      "mutation": "none",
+      "arguments": {"route_ref": "home"}
+    },
+    {
+      "id": "wait-heading",
+      "action": "wait_for",
+      "description": "Wait for the todos heading",
+      "mutation": "none",
+      "arguments": {"control_ref": "heading", "state": "visible"}
+    }
+  ],
+  "expected": [
+    {
+      "id": "heading-text",
+      "description": "The visible heading text equals todos",
+      "source_refs": [
+        {"source_id": "public-todomvc-spec", "anchor_id": "todo-heading-visible"}
+      ]
+    }
+  ],
+  "oracle": {
+    "mode": "deterministic",
+    "rules": [
+      {
+        "id": "heading-text-equals",
+        "kind": "deterministic",
+        "expectation_id": "heading-text",
+        "evidence_kind": "dom_state",
+        "operator": "equals",
+        "actual_path": "/text",
+        "value": "todos"
+      }
+    ]
+  },
+  "severity": "medium",
+  "spec_version": "p5-public-todomvc-v1",
+  "review_status": "approved",
+  "target": {"platform": "web", "device": "desktop"},
+  "runner_provider": "web-playwright",
+  "mutation_policy": {"mode": "deny", "approval_scope": [], "retry_policy": "never"},
+  "execution": {"enabled": true}
+}

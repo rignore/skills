@@ -1,0 +1,20 @@
+{
+  "schema_version": "native-android-config-v1",
+  "provider": "native-android",
+  "provider_contract_version": "native-mcp-adapter-v1",
+  "implementation_version": "1.1.0",
+  "defaults_version": "native-android-defaults-v1",
+  "runbook_id": "p5-public-api-demos-root-list-r1",
+  "locators": {
+    "root_list_item": [
+      {"by": "id", "value": "android:id/text1", "nth": 0}
+    ]
+  },
+  "timeouts_ms": {"launch": 30000, "wait_for": 15000},
+  "hold_ms": 0,
+  "read_only_retry_policy": "never",
+  "read_only_max_attempts": 1,
+  "evidence_collectors": {
+    "root-list-present": {"kind": "locator_result", "after_step_id": "wait-root-list"}
+  }
+}

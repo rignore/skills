@@ -1,0 +1,4 @@
+interface:
+  display_name: "Spec-driven QA"
+  short_description: "PRD·정책·디자인 기반 웹·Android 앱 QA"
+  default_prompt: "Use $spec-driven-qa to generate and judge spec-traceable QA scenarios for an actual web or Android app, and treat iOS as contract-only."

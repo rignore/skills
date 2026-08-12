@@ -1,0 +1,44 @@
+{
+  "schema_version": "web-playwright-config-v1",
+  "provider": "web-playwright",
+  "provider_contract_version": "web-playwright-runner-v1",
+  "implementation_version": "1.0.0",
+  "defaults_version": "web-playwright-defaults-v1",
+  "runbook_id": "p5-public-todomvc-heading-r1",
+  "browser": "chromium",
+  "headless": true,
+  "origin": "https://demo.playwright.dev",
+  "allowed_origins": ["https://demo.playwright.dev"],
+  "profiles": {
+    "desktop": {
+      "viewport": {"width": 1280, "height": 720},
+      "locale": "en-US",
+      "color_scheme": "light",
+      "reduced_motion": "reduce"
+    },
+    "responsive": {
+      "viewport": {"width": 390, "height": 844},
+      "device_scale_factor": 1,
+      "is_mobile": true,
+      "has_touch": true,
+      "locale": "en-US",
+      "color_scheme": "light",
+      "reduced_motion": "reduce"
+    }
+  },
+  "routes": {"home": "/todomvc/"},
+  "locators": {"heading": {"by": "role", "value": "heading", "name": "todos", "exact": true}},
+  "fixture_values": {},
+  "options": {},
+  "timeouts_ms": {"goto": 30000, "action": 10000, "evidence": 10000},
+  "read_only_retry_policy": "never",
+  "read_only_max_attempts": 1,
+  "evidence_collectors": {
+    "heading-text-equals": {
+      "kind": "dom_state",
+      "after_step_id": "wait-heading",
+      "locator_ref": "heading",
+      "fields": ["text", "visible"]
+    }
+  }
+}

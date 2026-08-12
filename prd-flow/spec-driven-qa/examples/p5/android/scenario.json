@@ -1,0 +1,69 @@
+{
+  "schema_version": "scenario-v1",
+  "id": "p5-public-api-demos-root-list",
+  "title": "Public ApiDemos root list appears",
+  "source_refs": [
+    {"source_id": "public-api-demos-spec", "anchor_id": "api-demos-list-visible"}
+  ],
+  "method": "native",
+  "preconditions": [
+    {
+      "id": "apk-binding-ready",
+      "description": "The version-pinned public ApiDemos APK matches the native runtime binding.",
+      "verification": "runner",
+      "check_ref": "native-binding-artifact-hash"
+    }
+  ],
+  "fixture": {
+    "kind": "snapshot",
+    "ref": "api-demos-v6.0.10-clean",
+    "purpose": "baseline",
+    "destructive": false,
+    "environment": "isolated"
+  },
+  "steps": [
+    {
+      "id": "launch-app",
+      "action": "launch",
+      "description": "Launch the approved public test APK",
+      "mutation": "potential"
+    },
+    {
+      "id": "wait-root-list",
+      "action": "wait_for",
+      "description": "Wait for at least one root list item",
+      "mutation": "none",
+      "arguments": {"control_ref": "root_list_item", "state": "present"}
+    }
+  ],
+  "expected": [
+    {
+      "id": "root-list-visible",
+      "description": "At least one root list item is present after launch",
+      "source_refs": [
+        {"source_id": "public-api-demos-spec", "anchor_id": "api-demos-list-visible"}
+      ]
+    }
+  ],
+  "oracle": {
+    "mode": "deterministic",
+    "rules": [
+      {
+        "id": "root-list-present",
+        "kind": "deterministic",
+        "expectation_id": "root-list-visible",
+        "evidence_kind": "locator_result",
+        "operator": "equals",
+        "actual_path": "/outcome",
+        "value": "matched"
+      }
+    ]
+  },
+  "severity": "medium",
+  "spec_version": "p5-public-api-demos-v1",
+  "review_status": "approved",
+  "target": {"platform": "android", "device": "emulator", "artifact_type": "apk"},
+  "runner_provider": "native-android",
+  "mutation_policy": {"mode": "require_approval", "approval_scope": ["launch-app"], "retry_policy": "never"},
+  "execution": {"enabled": true}
+}
