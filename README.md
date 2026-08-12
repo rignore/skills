@@ -28,6 +28,7 @@ Claude Code 스킬(`SKILL.md`) 모음. 특정 회사·제품에 결합되지 않
 prd-builder-discovery ──── 거시 게이트(문제·페르소나 → 솔루션 범위 → 최종 리포트)로 PRD 완성
   │        │
   │        ├─ domain-research ─────── 도메인 지식을 웹 검색으로 조사해 리서치 캐시 구축
+  │        ├─ data-scientist ─────── 내부 원자료를 evidence-pack으로 분석해 Gate 1 근거로 공급
   │        └─ prd-builder-auto ────── 게이트 사이 자동 Phase(발산·상세화) + 페르소나 리뷰 + Hard-Stop
   ▼
 prd-to-wireframe ────────── PRD → React JSX 와이어프레임

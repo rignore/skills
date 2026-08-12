@@ -20,6 +20,7 @@
 - [x] 회사 Done 게이트가 최신 QA 결과의 context·result·receipt SHA-256, validator SHA-256, Notion projection, ticket·AC source binding을 재검증하도록 연결
 - [x] Spec-driven QA Agent 전체 변경을 `rignore/skills` 원격 `main`에 배포
 - [x] `prd-flow/data-scientist` evidence-pack·explore·hypothesis 분석 스킬을 `rignore/skills` 원격 `main`에 배포
+- [x] `prd-builder-discovery`에 `data-scientist` evidence-pack 선행 분석·Gate 1 근거 연계 규칙 동기화
 
 ## Pending
 
