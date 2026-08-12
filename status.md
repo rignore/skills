@@ -18,6 +18,7 @@
 - [x] `spec-bundle-v1`, `scenario-v1`, `runbook-v1`, `result-v1`, Android MCP adapter, independent judge 계약과 표준 라이브러리 validator 구현
 - [x] 공개 web·Android 샘플로 회사 adapter와 분리된 contract-valid `result-v1` `pass` 검증
 - [x] 회사 Done 게이트가 최신 QA 결과의 context·result·receipt SHA-256, validator SHA-256, Notion projection, ticket·AC source binding을 재검증하도록 연결
+- [x] Spec-driven QA Agent 전체 변경을 `rignore/skills` 원격 `main`에 배포
 
 ## Pending
 
