@@ -1,17 +1,18 @@
 # Status
 
-업데이트: 2026-08-12
+업데이트: 2026-08-28
 
 ## Completed
 
-- [x] `ax-assessment-runner`를 시험/70분 PRD 구현용에서 AX 인재전쟁·기업 과제형 해커톤용 실행 프로토콜로 재설계
+- [x] `ai-hackathon-runner`를 특정 대회에 종속되지 않는 AI 해커톤·프로토타입 대회 실행 프로토콜로 일반화
+- [x] 스킬명·폴더명·등록 링크·README 자기참조를 `ai-hackathon-runner`로 통일
 - [x] Context, Problem Definition, Human Judgment, Scaffolding, Verification, Evidence, Taste, Mock Judge, submission safety, handoff 반영
 - [x] 트랙/기업별 병렬 탐색과 문제 후보 비교 규약 추가
 - [x] 영상 인사이트 기반 목표 역산, interactive context interview, AI Judge + Persona Judge 이중 심사, milestone별 검증 루프 반영
 - [x] 대회별 competition profile·team model·judge pack·submission ledger 템플릿 구조 추가
-- [x] 1~4인 팀 workstream·artifact ownership·Integration DRI 운영 모델 추가
+- [x] 공식 규정이 허용하는 팀 규모에 맞춰 workstream·artifact ownership·Integration DRI를 조정하는 운영 모델 추가
 - [x] `prd-flow`, `ai-dlc`, `loop-harness` 배제 정책을 phase별 SoT 조합 정책으로 전환
-- [x] 2026 금융 AI Challenge preset 추가
+- [x] 특정 대회 preset을 제거하고 실행 시 공식 원문을 competition profile에 주입하도록 변경
 - [x] `ai-dlc`, `loop-harness`, `ux-researcher`, `codex-delegate` 경계 및 root README 갱신
 - [x] 범용 Spec-driven QA Agent의 P0~P5와 P6 회사 adapter code path 구현
 - [x] Desktop web·responsive mobile web Playwright runner와 Android Emulator·APK Appium adapter 구현

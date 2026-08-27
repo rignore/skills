@@ -6,7 +6,7 @@ Claude Code 스킬(`SKILL.md`) 모음. 특정 회사·제품에 결합되지 않
 |---|---|---|
 | [`prd-flow/`](prd-flow/) | 아이디어 → PRD → 와이어프레임 → 화면 설계서까지 잇는 제품 개발 파이프라인 | "prd-flow 시작" / "PRD 자동 진행" |
 | [`ai-dlc/`](ai-dlc/) | PRD + 화면 사양을 자동 인테이크해 유저스토리 → 설계 → 코드 생성·빌드·테스트 (AWS AI-DLC 방법론) | `/ai-dlc` |
-| [`ax-assessment-runner/`](ax-assessment-runner/) | AX 인재전쟁·기업 과제형 AI 해커톤에서 1~4인 팀의 기업/도메인 조사 → 트랙별 문제 경쟁 → 구현·실증 → Mock Judge → 제출·handoff를 운영하고 prd-flow·ai-dlc·loop-harness를 조합 | "AX 인재전쟁" / "AI 해커톤" / "해커톤 제출" |
+| [`ai-hackathon-runner/`](ai-hackathon-runner/) | AI 해커톤·프로토타입 대회에서 공식 규칙 조사 → 문제 후보 경쟁 → 구현·실증 → Mock Judge → 제출·handoff를 운영하고 prd-flow·ai-dlc·loop-harness를 조합 | "AI 해커톤" / "해커톤 준비" / "해커톤 제출" |
 | [`loop-harness/`](loop-harness/) | 정답표 + 기계 판정이 있는 수치 지표를 라운드 단위로 반복 개선하는 하네스 | "loop 하네스" / "검증 루프" |
 | [`ux-researcher/`](ux-researcher/) | 렌더된 화면·유저플로우를 관찰해 UX 개선점을 찾되, 발견과 판정을 분리해 LLM 오탐을 억제하는 리뷰 하네스 | "UX 검토" / "유저플로우 봐줘" |
 | [`bizplan-builder/`](bizplan-builder/) | B2B SaaS·AI 에이전트·IIoT 신사업 사업계획서를 4개 Phase로 나누어 VC·컨설팅 펌 수준의 전문가 페르소나와 정량 가드레일로 검증하며 작성 | "사업계획서 작성" / "BP 만들어" |
@@ -51,9 +51,9 @@ ai-dlc ──────────────────── PRD + 화면
 
 측정 가능한 지표 + 수정 가능한 해법이 있는 모든 시스템(LLM 프롬프트, 시뮬레이터 물리 모델, 검색 품질, 성능 튜닝 등)에 적용하는 반복 개선 방법론. Planner(계획)·Solver(해법)·Evaluator(판정) 3역할을 분리하고, 라운드마다 기계 집계로만 판정한다. 편향 통제(판정 모델을 생성 모델과 다른 계열로 고정), 통계 설계(동일 조건 N회 반복), 정체 시 학술 리서치 선행을 규약으로 둔다.
 
-## ax-assessment-runner — 해커톤 실행 프로토콜
+## ai-hackathon-runner — AI 해커톤 실행 프로토콜
 
-정형 PRD가 없는 AX 인재전쟁·기업 과제형 해커톤에서 사용한다. 공식 규칙과 제출 요건을 competition profile로 잠그고, 1~4인 팀이 여러 기업/트랙을 동일 schema로 병렬 조사해 Problem Candidate를 만든다. 사람은 artifact별 DRI를 맡아 문제·P0·성공 기준·trade-off를 확정하고, agent와 전문 스킬은 독립 work package를 수행한다. 마지막에는 생성 맥락과 분리된 Mock Judge, 실격 체크, demo rehearsal, 제출 receipt, 세션 handoff까지 닫는다.
+정형 PRD가 없는 AI 해커톤·프로토타입 대회·기업/공공/오픈 챌린지에서 사용한다. 공식 규칙과 제출 요건을 competition profile로 잠그고, 대회가 허용하는 규모의 팀이 하나 이상의 트랙을 동일 schema로 조사해 Problem Candidate를 만든다. 사람은 artifact별 DRI를 맡아 문제·P0·성공 기준·trade-off를 확정하고, agent와 전문 스킬은 독립 work package를 수행한다. 마지막에는 생성 맥락과 분리된 Mock Judge, 실격 체크, demo rehearsal, 제출 receipt, 세션 handoff까지 닫는다.
 
 기존 자산은 배제하지 않고 phase별 Source of Truth로 조합한다.
 

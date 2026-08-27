@@ -1,9 +1,9 @@
-# AX Hackathon Runner — Manual Fallback Prompt
+# AI Hackathon Runner — Manual Fallback Prompt
 
 > Skill 자동 로딩이 불가능한 환경에서만 사용한다.
 
 ```text
-이번 작업은 AX 인재전쟁/기업 과제형 AI 해커톤이다. 목표는 기능 수가 아니라 근거 있는 문제 선택과 검증 가능한 사용자 변화를 제출하는 것이다.
+이번 작업은 시간 제한 안에 AI를 활용한 결과물을 제출하는 해커톤 또는 프로토타입 대회다. 목표는 기능 수가 아니라 근거 있는 문제 선택과 검증 가능한 사용자 변화를 제출하는 것이다.
 
 Context → Problem Definition → Human Judgment → Scaffolding → Build → Verification → Evidence → Taste → Mock Judge → Submit → Handoff 순서로 진행하라.
 

@@ -1,9 +1,9 @@
 ---
-name: ax-assessment-runner
-description: AX 인재전쟁·기업 과제형 AI 해커톤에서 대회 규칙과 기업·도메인 맥락을 조사하고, 1~4인 팀이 여러 트랙의 문제 후보를 병렬 탐색·검증·우선순위화한 뒤, 사람이 핵심 판단을 소유한 상태로 prototype을 구현·실증·심사·제출하는 상위 오케스트레이션 스킬. 사용자가 "AX 인재전쟁", "AI 해커톤", "기업 과제 해커톤", "해커톤 준비", "해커톤 문제 정의", "해커톤 제출", "hackathon runner"처럼 시간 제한 안에 문제 발굴부터 데모·제출까지 진행하려 할 때 사용한다. 대회별 차이는 competition profile template로 주입하며 prd-flow, ai-dlc, loop-harness, ux-researcher, codex-delegate를 단계별 실행 자산으로 조합할 수 있다.
+name: ai-hackathon-runner
+description: AI 활용 해커톤·프로토타입 대회·기업/공공/오픈 챌린지에서 공식 규칙과 주최사·도메인 맥락을 조사하고, 대회가 허용하는 규모의 팀이 하나 이상의 트랙에서 문제 후보를 탐색·검증·우선순위화한 뒤, 사람이 핵심 판단을 소유한 상태로 prototype을 구현·실증·심사·제출하도록 운영하는 상위 오케스트레이션 스킬. 사용자가 "AI 해커톤", "해커톤 준비", "해커톤 문제 정의", "해커톤 팀 구성", "해커톤 데모", "해커톤 제출", "prototype challenge", "hackathon runner"처럼 시간 제한 안에 문제 발굴부터 데모·제출까지 진행하려 할 때 사용한다. 대회별 차이는 competition profile template로 주입하며 prd-flow, ai-dlc, loop-harness, ux-researcher, codex-delegate를 단계별 실행 자산으로 조합할 수 있다.
 ---
 
-# AX Hackathon Runner
+# AI Hackathon Runner
 
 해커톤의 목표는 기능 수가 아니라 **근거 있는 문제 선택과 검증 가능한 변화**다.
 
@@ -44,7 +44,7 @@ Context → Problem Definition → Human Judgment → Scaffolding
 | `references/context-and-problem.md` | Phase 1~2 | 조사 깊이, 후보 카드, 병렬 탐색·우선순위 규약 |
 | `references/timebox-and-submission.md` | Phase 0 및 종료 20% | 비율 기반 시간 운영, 제출·실격 체크 |
 | `references/evaluation-lenses.md` | Phase 2, 7 | 문제 선택·Mock Judge 렌즈 |
-| `references/composition-and-team.md` | Phase 0, 4 | 1~4인 팀 운영과 기존 스킬 조합 규약 |
+| `references/composition-and-team.md` | Phase 0, 4 | 대회 허용 팀 규모에 맞춘 운영과 기존 스킬 조합 규약 |
 
 필요한 시점에만 읽는다.
 
@@ -55,11 +55,11 @@ Context → Problem Definition → Human Judgment → Scaffolding
 | Template | Project artifact | 용도 |
 |---|---|---|
 | `templates/competition-profile.md` | `hackathon/competition-profile.md` | 규칙·목표·도메인 lane·단계 override |
-| `templates/team-operating-model.md` | `hackathon/team-operating-model.md` | 1~4인 역할·ownership·sync |
+| `templates/team-operating-model.md` | `hackathon/team-operating-model.md` | 팀 규모별 역할·ownership·sync |
 | `templates/judge-pack.md` | `hackathon/judge-pack.md` | AI/Persona Judge와 종료 조건 |
 | `templates/submission-ledger.md` | `hackathon/submission-ledger.md` | 단계별 제출·실격·receipt |
 
-공식 preset이 있으면 generic template 대신 해당 preset을 `competition-profile.md`의 초안으로 사용한다. `templates/2026-finance-ai-challenge-profile.md`는 2026 금융 AI Challenge용 시작점이다. preset의 날짜·규정·URL은 실행 시 공식 원문으로 재검증하고 `last_verified_at`을 갱신한다.
+특정 대회의 규정·날짜·URL을 스킬에 보존하지 않는다. 주최사가 공식 starter 문서나 양식을 제공하면 generic template의 대응 필드에 옮기고 원문 출처를 연결한다. 실행할 때마다 공식 원문을 다시 확인하고 `last_verified_at`을 갱신한다.
 
 ---
 
@@ -202,7 +202,7 @@ Decision needed: track / problem / accepted trade-off
 - Top dependency and fallback:
 ```
 
-Problem Lock 이후 사용할 기존 자산을 먼저 선택한다. `references/composition-and-team.md`의 routing을 적용하고 선택한 스킬 산출물을 해당 phase의 SoT로 선언한다. 같은 내용의 AX artifact를 다시 만들지 않는다.
+Problem Lock 이후 사용할 기존 자산을 먼저 선택한다. `references/composition-and-team.md`의 routing을 적용하고 선택한 스킬 산출물을 해당 phase의 SoT로 선언한다. 같은 내용의 Runner artifact를 다시 만들지 않는다.
 
 3~6개 work package로 나눈다.
 
@@ -340,17 +340,17 @@ Freeze 이후에는 실격·blocker·regression만 수정한다. 제출 성공 �
 
 ## 기존 자산과의 조합 원칙
 
-기존 스킬을 기본적으로 배제하지 않는다. `ax-assessment-runner`는 대회 규칙·시간·팀·심사·제출을 소유하고, 전문 스킬은 선택된 phase의 실행과 산출물을 소유한다.
+기존 스킬을 기본적으로 배제하지 않는다. `ai-hackathon-runner`는 대회 규칙·시간·팀·심사·제출을 소유하고, 전문 스킬은 선택된 phase의 실행과 산출물을 소유한다.
 
 | 스킬 | 조합 지점 | SoT / 제한 |
 |---|---|---|
-| `prd-flow` | Context 이후 문제 정의·페르소나·가치 가설·solution scope·Full PRD | `prd-flow/{slug}/`를 제품 정의 SoT로 사용한다. AX Problem/Build Contract와 중복 작성하지 않고 필요한 필드만 링크한다. 팀의 research/product workstream에 우선 권장한다. |
-| `ai-dlc` | Full PRD 또는 Build Contract 확정 후 설계·구현·테스트 | `aidlc-docs/`와 code를 기술 실행 SoT로 사용한다. 해커톤 시간·제출 gate는 AX가 계속 소유한다. 짧은 대회에서는 full lifecycle overhead를 비교하고 선택한다. |
+| `prd-flow` | Context 이후 문제 정의·페르소나·가치 가설·solution scope·Full PRD | `prd-flow/{slug}/`를 제품 정의 SoT로 사용한다. Runner의 Problem/Build Contract와 중복 작성하지 않고 필요한 필드만 링크한다. 팀의 research/product workstream에 우선 권장한다. |
+| `ai-dlc` | Full PRD 또는 Build Contract 확정 후 설계·구현·테스트 | `aidlc-docs/`와 code를 기술 실행 SoT로 사용한다. 해커톤 시간·제출 gate는 Runner가 계속 소유한다. 짧은 대회에서는 full lifecycle overhead를 비교하고 선택한다. |
 | `loop-harness` | 정확도·latency·cost·task completion처럼 반복 측정 가능한 핵심 가설 최적화 | 정답표·기계 판정이 있는 지표에만 사용한다. 주관적 우승 가능성이나 Persona Judge 점수를 정답표처럼 최적화하지 않는다. |
-| `ux-researcher` | 통합 MVP의 대표 flow가 나온 뒤 정밀 UX 검증 | UX finding을 evidence register에 연결한다. 제출 직전 시간이 부족하면 AX Taste Gate만 사용한다. |
+| `ux-researcher` | 통합 MVP의 대표 flow가 나온 뒤 정밀 UX 검증 | UX finding을 evidence register에 연결한다. 제출 직전 시간이 부족하면 Runner의 Taste Gate만 사용한다. |
 | `codex-delegate` | 독립 work package를 별도 Codex CLI에 자립 SPEC으로 위임 | 해당 package의 실행 수단일 뿐 제품 판단·팀 통합·제출 owner가 아니다. |
 
-조합 시 precedence는 `공식 대회 규칙 > competition profile > AX phase gate > 전문 스킬 workflow > 일반 개발 관행` 순서다.
+조합 시 precedence는 `공식 대회 규칙 > competition profile > Runner phase gate > 전문 스킬 workflow > 일반 개발 관행` 순서다.
 
 ## 종료 조건
 

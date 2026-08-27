@@ -27,7 +27,7 @@ hackathon/
 | 1 | Product/Research + Build + Validation/Release | agent를 병렬 Scout/Judge로 쓰되 사람은 Problem/Taste/Submit을 소유 |
 | 2 | A: Product/Research/Evidence, B: Tech/Integration/Release | 둘 다 Taste/Judge review 참여, 제출 owner는 한 명 |
 | 3 | A: Product/Domain, B: AI/Data/Backend, C: Frontend/UX/Integration | C가 통합하되 A가 evidence, B가 model verification 소유 |
-| 4 | A: Product/Research, B: AI/Data, C: App/Platform, D: Validation/Demo/Release | D가 독립 Judge 입력·submission ledger, C가 integration contract 소유 |
+| 4+ | A: Product/Research, B: AI/Data, C: App/Platform, D: Validation/Demo/Release | 5명 이상이면 독립 domain·data·growth workstream을 추가하되 공용 contract와 submission owner는 한 명으로 유지 |
 
 역량이 다르면 역할명을 고집하지 말고 DRI를 교체한다. 다만 다음 ownership은 중복시키지 않는다.
 
@@ -90,18 +90,18 @@ Problem Lock에서 workstream을 다시 배치한다. 조사 담당자가 반드
 매핑:
 
 ```text
-AX Context/Problem Discovery
+Runner Context/Problem Discovery
 → prd-flow domain-research + Gate 1
-→ AX Human Problem Lock
+→ Runner Human Problem Lock
 → prd-flow Gate 1.5 + Gate 2
-→ AX Build Contract는 full-prd 링크로 대체
+→ Runner Build Contract는 full-prd 링크로 대체
 ```
 
-AX와 prd-flow가 문제 정의 문서를 각각 만들지 않는다. `prd-flow/{slug}/context.json`과 Gate 산출물이 제품 정의 SoT다.
+Runner와 prd-flow가 문제 정의 문서를 각각 만들지 않는다. `prd-flow/{slug}/context.json`과 Gate 산출물이 제품 정의 SoT다.
 
 ### ai-dlc
 
-Full PRD가 확정되고 남은 시간이 lifecycle overhead를 감당할 때 사용한다. ai-dlc의 설계·code·test 산출물을 기술 SoT로 삼고 AX는 timer, team ownership, evidence, judge, submission을 계속 관리한다. 짧은 대회에서는 필요한 P0 package만 직접 구현하는 편이 안전하다.
+Full PRD가 확정되고 남은 시간이 lifecycle overhead를 감당할 때 사용한다. ai-dlc의 설계·code·test 산출물을 기술 SoT로 삼고 Runner는 timer, team ownership, evidence, judge, submission을 계속 관리한다. 짧은 대회에서는 필요한 P0 package만 직접 구현하는 편이 안전하다.
 
 ### loop-harness
 
@@ -123,5 +123,5 @@ Full PRD가 확정되고 남은 시간이 lifecycle overhead를 감당할 때 �
 
 - 한 스킬의 출력이 다음 스킬 입력 계약을 만족하는지 DRI가 확인한다.
 - 서로 다른 status/handoff를 병렬 운영하지 않는다. 공용 ledger에서 링크한다.
-- 전문 스킬의 gate를 통과했어도 Competition Lock과 Submission Ledger 위반이면 AX에서 FAIL이다.
+- 전문 스킬의 gate를 통과했어도 Competition Lock과 Submission Ledger 위반이면 Runner에서 FAIL이다.
 - 팀원의 로컬 성공을 통합 성공으로 간주하지 않는다.
