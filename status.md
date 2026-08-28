@@ -4,7 +4,7 @@
 
 ## Completed
 
-- [x] `ai-hackathon-runner`를 특정 대회에 종속되지 않는 AI 해커톤·프로토타입 대회 실행 프로토콜로 일반화
+- [x] `ai-hackathon-runner`를 특정 대회에 종속되지 않는 AI 해커톤·프로토타입 대회 실행 프로토콜로 일반화하고 `rignore/skills` 원격 `main`에 배포
 - [x] 스킬명·폴더명·등록 링크·README 자기참조를 `ai-hackathon-runner`로 통일
 - [x] Context, Problem Definition, Human Judgment, Scaffolding, Verification, Evidence, Taste, Mock Judge, submission safety, handoff 반영
 - [x] 트랙/기업별 병렬 탐색과 문제 후보 비교 규약 추가
