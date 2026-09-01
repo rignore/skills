@@ -1,6 +1,10 @@
 ---
 name: notion-organizer
-description: Notion 페이지에 작성된 텍스트(회의록, 초안, 메모, 리서치, 브레인스토밍 결과 등)를 업무용으로 깔끔하게 재구조화하는 스킬. 또한 prd-flow의 **선택적 Notion 업로더**로서 워크플로우 연계 3종 모드(live-page-update · prd-consolidation · bulk-upload)를 지원한다: live-page-update는 Gate 1 통과 후 Problem One-Pager를 생성하고 이후 게이트마다 동일 페이지를 업데이트, prd-consolidation은 Gate 2 통과 후 전체 1-Pager 업데이트 + Full PRD 하위 페이지 신규 생성, bulk-upload는 작업 디렉토리 산출물을 Notion 페이지로 일괄 매핑한다. 연계 모드는 context.json의 `notion_upload`가 true일 때만 동작하며, 모든 업로드는 표준 Notion MCP로 사용자 지정 부모 페이지 하위에 이루어진다. 사용자가 "노션 정리", "노션 문서 정리", "정리해줘", "구조화", "깔끔하게", "문서 정돈", "회의록 정리", "텍스트 정리", "노션 클린업", "Notion 정리", "문서 재구성", "개조식으로 정리"와 같은 키워드를 언급하거나, 기존 Notion 페이지 URL을 공유하며 "이거 정리해줘"라고 요청할 때 반드시 이 스킬을 사용한다. 새 문서를 작성하는 것이 아니라 이미 존재하는 텍스트를 정리하는 작업일 때 트리거된다.
+description: >
+  Notion 페이지에 작성된 텍스트를 업무용으로 재구조화하는 스킬. prd-flow의 선택적
+  Notion 업로더로서 3종 모드(live-page-update · prd-consolidation · bulk-upload)를
+  지원한다. 사용자가 기존 Notion 페이지나 텍스트를 정리·구조화·재구성해 달라고
+  요청할 때 사용한다.
 ---
 
 # Notion Organizer
@@ -503,7 +507,7 @@ H2: 문제 정의             (gate1/01-problem.md)
 H2: 핵심 가치 가설         (gate1/02-value-hypothesis.md)
 H2: 페르소나              (gate1/03-personas.md)
 H2: 솔루션 범위           (gate1.5/06-solution-scope.md)
-H2: 기능 정의             (auto-backward/07-features.md)
+H2: Epic 정의            (auto-backward/07-epics.md — H3 per Epic)
 H2: AI 에이전트 사양       (auto-backward/08-ai-agent-spec.md — 파일 존재 시만)
 H2: 우선순위              (auto-backward/09-priorities.md — P0/P1/P2 Toggle H3)
 H2: KPI                  (auto-backward/10-kpi.md — Simple Table)
@@ -532,7 +536,7 @@ H2: 결정 로그 (Toggle)    (auto-backward/12-decision-log.md)
 | gate1/02-value-hypothesis.md | 02-핵심 가치 가설 | Simple Table | bulk |
 | gate1/03-personas.md | 03-페르소나 | Toggle H3 per persona | bulk |
 | gate1.5/06-solution-scope.md | 04-솔루션 범위 | Simple Table + Toggle | prd-consolidation, bulk |
-| auto-backward/07-features.md | 05-기능 정의 | Inline Database | bulk |
+| auto-backward/07-epics.md | 05-Epic 정의 | H3 per Epic | bulk |
 | auto-backward/08-ai-agent-spec.md | 06-AI 에이전트 사양 (조건부) | Toggle H2 | bulk |
 | auto-backward/09-priorities.md | 07-우선순위 | P0/P1/P2 Toggle H3 | bulk |
 | auto-backward/10-kpi.md | 08-KPI | Simple Table + placeholder | prd-consolidation, bulk |
@@ -542,6 +546,8 @@ H2: 결정 로그 (Toggle)    (auto-backward/12-decision-log.md)
 | notion-pages/full-prd.md | (기존 full_prd_id 업데이트) | prd-consolidation 결과 보강 | bulk |
 | wireframe/manifest.json + {screen}_description.md | 10-디스크립션 | H2 per screen | bulk |
 | gate2/13-discovery-report.md | Full PRD 상단 요약 Callout | Callout(초록) 삽입 | bulk |
+
+신규 Full PRD는 `07-epics.md`를 사용한다. 기존 프로젝트에 `07-features.md`만 있으면 읽기·재업로드 호환을 위해 `05-기능 정의`로 유지하되, 이를 신규 Epic 형식으로 임의 변환하지 않는다. Epic은 `목적`, `완료 후 상태`, `포함 범위`, `핵심 요구사항`, `범위 밖·주요 연계`, `Epic 완료 판단`을 본문에 펼쳐 보여야 하므로 Inline Database에 넣지 않는다.
 
 **페이지 계층:** 사용자 지정 부모 페이지 하위 평면 나열. 페이지명 prefix(`01-`, `02-`...)로 Notion 내 정렬 유지.
 

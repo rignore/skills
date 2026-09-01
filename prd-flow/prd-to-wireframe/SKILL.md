@@ -1,6 +1,6 @@
 ---
 name: prd-to-wireframe
-description: Discovery 산출물(prd-builder-discovery 작업 디렉토리)을 입력으로 받아 React 와이어프레임 코드를 자동 생성하는 스킬. 페르소나·V1 범위·기능 정의를 분석해 화면 목록을 도출하고, 화면별 React JSX 코드를 작성한다. 프로젝트 전용 디자인 시스템(design/design-system.md)이 없으면 design-system-builder를 호출해 생성하고, 있으면 로드해 화면 생성 기준으로 사용한다. 사용자가 "PRD에서 와이어프레임 만들어", "PRD로 프로토타입 만들어", "와이어프레임 생성", "React 화면 만들어", "PRD to wireframe", "prd-to-wireframe", "화면 자동 생성", "프로토타입 자동 생성", "Discovery 끝났으니 와이어프레임", "Phase 2 진행"과 같은 키워드를 언급하거나, prd-builder-discovery의 Gate 2 통과 후 자동 핸드오프로 호출될 때 사용한다. 자동 핸드오프와 사용자 명시 호출 둘 다 지원하며, 명시 호출 시 사용자가 작업 디렉토리 경로만 지정하면 된다.
+description: Discovery 산출물(prd-builder-discovery 작업 디렉토리)을 입력으로 받아 React 와이어프레임 코드를 자동 생성하는 스킬. 페르소나·V1 범위·Epic의 포함 범위를 분석해 화면 목록을 도출하고, 화면별 React JSX 코드를 작성한다. 프로젝트 전용 디자인 시스템(design/design-system.md)이 없으면 design-system-builder를 호출해 생성하고, 있으면 로드해 화면 생성 기준으로 사용한다. 사용자가 "PRD에서 와이어프레임 만들어", "PRD로 프로토타입 만들어", "와이어프레임 생성", "React 화면 만들어", "PRD to wireframe", "prd-to-wireframe", "화면 자동 생성", "프로토타입 자동 생성", "Discovery 끝났으니 와이어프레임", "Phase 2 진행"과 같은 키워드를 언급하거나, prd-builder-discovery의 Gate 2 통과 후 자동 핸드오프로 호출될 때 사용한다. 자동 핸드오프와 사용자 명시 호출 둘 다 지원하며, 명시 호출 시 사용자가 작업 디렉토리 경로만 지정하면 된다.
 ---
 
 # PRD to Wireframe
@@ -50,7 +50,7 @@ prd-to-wireframe 호출
 | `gate1/01-problem.md` | 화면별 핵심 사용자 흐름 파악 |
 | `gate1/03-personas.md` | 화면별 메인 사용자 매핑 |
 | `gate1.5/06-solution-scope.md` | V1에 포함될 화면·기능 범위 |
-| `auto-backward/07-features.md` | 각 화면의 기능 단위 컴포넌트 도출 |
+| `auto-backward/07-epics.md` | V1 Epic의 목적·포함 범위·완료 상태 확인 |
 | `auto-backward/08-ai-agent-spec.md` (있을 때) | AI 호출이 UI에 노출되는 영역 표시 |
 | `auto-backward/09-priorities.md` | P0 화면 우선 생성 → P1 → P2 순 |
 | `research/domain-*.md` (있을 때) | 도메인 리서치 캐시 — 화면 정보 설계의 정합성 참고 근거 (단정 금지, 출처 병기) |
@@ -87,23 +87,25 @@ prd-to-wireframe 호출
 function derive_screens():
     screens = []
     
-    # 1. V1 범위의 기능 항목 추출
-    v1_features = solution_scope.v1_items
+    # 1. V1 Epic에서 사용자 상호작용이 필요한 포함 범위 추출
+    v1_epics = epic_definitions.v1_items
+    user_capabilities = flatten(v1_epics.included_scope)
     
-    # 2. 페르소나별 JTBD를 기능과 매핑
+    # 2. 페르소나별 JTBD를 Epic 포함 범위와 매핑
     for persona in personas.main_and_sub:
         for jtbd in persona.jtbds:
-            related_features = match(jtbd, v1_features)
+            related_capabilities = match(jtbd, user_capabilities)
             
-            # 3. 기능 묶음을 화면 단위로 그룹화
-            screen_groups = group_by_user_flow(related_features)
+            # 3. 사용자 역량 묶음을 화면 단위로 그룹화
+            screen_groups = group_by_user_flow(related_capabilities)
             
             for group in screen_groups:
                 screens.append({
                     "name": derive_screen_name(group),
                     "primary_persona": persona,
-                    "features": group,
-                    "priority": max(features.priority)
+                    "capabilities": group,
+                    "epic_refs": match(group, v1_epics),
+                    "priority": max(group.priority)
                 })
     
     # 4. P0 우선 정렬
@@ -139,7 +141,7 @@ V1 범위 분석 결과 {N}개 화면 도출:
 | 입력 | 출처 |
 |------|------|
 | 컴포넌트 유형 | Phase 1 도출 화면의 주요 컴포넌트 (wizard, table, progress, dashboard 등) |
-| 요구사항 | PRD V1 기능 정의 + 페르소나 JTBD 핵심 동작 |
+| 요구사항 | PRD V1 Epic의 포함 범위 + 페르소나 JTBD 핵심 동작 |
 
 **실행 방식**
 - 화면 단위로 검색 쿼리 구성 (1화면 1~2회)
@@ -238,7 +240,7 @@ Phase 0에서 로드한 프로젝트 생성물 `design/design-system.md`가 최�
       "file": "screens/01-NotificationSettings.jsx",
       "primary_persona": "팀 관리자",
       "priority": "P0",
-      "features_ref": ["F-1", "F-3"],
+      "epic_refs": ["EP-01"],
       "components": [
         {
           "name": "ChannelPrioritySelector",
@@ -285,19 +287,19 @@ Lint 기준은 단일하다: **생성된 design-system.md §0 Hard Constraints +
 
 3회 재생성 후에도 위반이 남으면 `prd-builder-auto`를 `wireframe_review` 모드로 호출해 H6 (Design Lint Hard Stop) 발동. 사용자에게 의도된 위반인지 확인 요청.
 
-### Phase 5 — Coverage 검증
+### Phase 5 — Epic Coverage 검증
 
-V1 범위의 모든 기능이 와이어프레임에 반영됐는지 검증.
+V1 Epic의 포함 범위 중 사용자 상호작용이 필요한 항목이 와이어프레임에 반영됐는지 검증한다. Epic 전체가 화면 하나와 1:1 대응한다고 가정하지 않으며, 사용자 상호작용이 없는 운영·인프라 범위는 화면 coverage에서 제외 사유를 기록한다.
 
 ```
 function coverage_check():
-    v1_features = solution_scope.v1_items
-    covered_features = collect_feature_refs(manifest.screens)
+    ui_scope = collect_user_interaction_scope(epic_definitions.v1_items)
+    covered_scope = collect_epic_scope_refs(manifest.screens)
     
-    missing = v1_features - covered_features
+    missing = ui_scope - covered_scope
     if missing:
         report_to_user(
-            "V1 범위에 정의됐으나 와이어프레임에 누락된 기능: " + missing
+            "V1 Epic에 정의됐으나 와이어프레임에 누락된 사용자 상호작용 범위: " + missing
         )
 ```
 

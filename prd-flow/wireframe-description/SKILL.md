@@ -92,7 +92,7 @@ PRD를 SoT(Source of Truth)로, 프로토타입을 그 시각적 구현체로 �
 |-------|--------------------------|
 | `notion-pages/full-prd.md` (필수) | 권한 매트릭스, 비기능 요구(성능·SLA), 데이터 스키마, Open Questions, 상태 머신·자동화 정책 등 비즈니스 로직 |
 | `auto-backward/08-ai-agent-spec.md` (있으면) | 에이전트 동작 사례, 허용된 분기, Reflection 루프, 사용자 개입 일감 |
-| `auto-backward/07-features.md` · `12-decision-log.md` (있으면) | 기능 정의 상세, 결정(`D-`)·근거 앵커 |
+| `auto-backward/07-epics.md` · `12-decision-log.md` (있으면) | Epic 목적·범위·완료 상태, 결정(`D-`)·근거 앵커 |
 
 > **화면 스펙 페이지는 더 이상 PRD 산출물로 생성하지 않는다.** 화면 단위 정의·컴포넌트 구성·인터랙션 흐름의 SoT는 프로토타입이며, 디스크립션이 직접 기술한다. 또한 **화면 진입 조건·데이터 정의/카테고리 목록도 PRD가 아닌 디스크립션이 1차 정의한다.**
 

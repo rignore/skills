@@ -12,7 +12,7 @@ Phase 1(PRD 컨텍스트 적재)에서 어떤 파일/페이지를 읽고, 어떤
 |-----------|---------|---------|
 | `notion-pages/full-prd.md` | 필수 | 권한 매트릭스, Open Questions, 비기능 요구사항, 상태 머신·자동화 정책 등 비즈니스 로직 |
 | `auto-backward/08-ai-agent-spec.md` | 있으면 | 에이전트 동작 사례, 허용된 분기, Reflection 루프 (Agent PRD 역할) |
-| `auto-backward/07-features.md` | 있으면 | 기능 정의 상세 — Phase 3 화면 매핑의 기준 |
+| `auto-backward/07-epics.md` | 있으면 | Epic 목적·범위·완료 상태 — Phase 3 화면 매핑의 상위 경계 |
 | `auto-backward/12-decision-log.md` | 있으면 | 결정(`D-`) 앵커, 수식 임계치·파라미터의 리서치 근거 |
 | `gate2/13-discovery-report.md` | 있으면 | Discovery 종합 맥락 (선택 적재) |
 
