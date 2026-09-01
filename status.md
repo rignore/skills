@@ -1,6 +1,6 @@
 # Status
 
-업데이트: 2026-08-28
+업데이트: 2026-09-01
 
 ## Completed
 
@@ -22,6 +22,8 @@
 - [x] Spec-driven QA Agent 전체 변경을 `rignore/skills` 원격 `main`에 배포
 - [x] `prd-flow/data-scientist` evidence-pack·explore·hypothesis 분석 스킬을 `rignore/skills` 원격 `main`에 배포
 - [x] `prd-builder-discovery`에 `data-scientist` evidence-pack 선행 분석·Gate 1 근거 연계 규칙 동기화
+- [x] Full PRD 기능 요구사항을 `EP-` Epic 단위로 통일하고 Epic 분리 기준·PRD와 티켓의 경계·이름 원칙·권장 작성 수준 반영
+- [x] `prd-flow`의 PRD 생성·Notion 투영·동기화·티켓화·wireframe 연계가 Epic 정본을 사용하도록 갱신하고 검증
 
 ## Pending
 
