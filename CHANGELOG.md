@@ -2,6 +2,16 @@
 
 prd-flow 스킬 자동 배포 변경 이력 (기계 생성). 최신이 위.
 
+## 2026-09-02 18:00:24  ·  → rignore
+
+**design-system-builder**
+- 수정 `SKILL.md`
+- 수정 `references/design-system-template.md`
+
+변경 요약: 2 files changed, 3 insertions(+), 3 deletions(-)
+
+---
+
 ## 2026-08-12 18:00:17  ·  → rignore
 
 **data-scientist**
