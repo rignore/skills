@@ -35,7 +35,7 @@ prd-flow/{feature-slug}/design/
 - `gate1/01-problem.md` — 문제 정의 (제품이 뭘 해결하는가)
 - `gate1/03-personas.md` — 페르소나 (누가, 어떤 환경에서 쓰는가)
 - `gate1.5/06-solution-scope.md` — 솔루션 범위
-- `auto-backward/07-epics.md` — Epic 범위 확인. 화면 밀도·컴포넌트 수요는 와이어프레임 화면 목록에서 추정
+- `auto-backward/07-features.md` — 기능 목록 (화면 밀도·컴포넌트 수요 추정)
 - `research/domain-*.md` — 도메인 리서치 캐시 (있으면)
 
 ### Phase 1 — 디자인 니즈 도출
@@ -101,7 +101,7 @@ Phase 1 판정을 쿼리로 변환해 WebSearch **3~5회** 수행한다:
 ```
 □ 모든 컬러·타이포·radius·spacing 토큰에 구체 값이 있는가?
 □ Hard Constraints가 생성된 토큰 값과 모순되지 않는가?
-□ 컴포넌트 인벤토리가 와이어프레임 화면 목록의 수요(테이블? 차트? 폼?)를 커버하는가?
+□ 컴포넌트 인벤토리가 07-features.md의 화면 수요(테이블? 차트? 폼?)를 커버하는가?
 □ 접근성 최소선(대비·터치 타깃)이 명시됐는가?
 □ design-references.md에 모든 차용 요소의 출처가 있는가?
 ```
