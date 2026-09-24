@@ -1434,6 +1434,10 @@ class ContractValidator:
                     "ui_hierarchy",
                 },
             }.get(platform)
+            if required_state_kinds is not None and document.get("runner_provider") == "developer-test":
+                # developer-test replays a project-owned test command; its objective state is the
+                # recorded command outcome and per-case results, not UI state.
+                required_state_kinds = {"test_command", "structured_log"}
             if required_state_kinds is not None:
                 for oracle_path, evidence_refs in matched_oracle_evidence:
                     referenced_kinds = {

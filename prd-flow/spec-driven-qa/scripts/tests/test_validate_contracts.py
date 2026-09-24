@@ -224,6 +224,135 @@ def passing_web_result() -> dict:
     }
 
 
+def developer_test_scenario() -> dict:
+    scenario = web_scenario()
+    scenario.update(
+        {
+            "id": "unit-save-status",
+            "method": "unit",
+            "preconditions": [],
+            "fixture": {
+                "kind": "none",
+                "purpose": "baseline",
+                "destructive": False,
+                "environment": "isolated",
+            },
+            "steps": [
+                {
+                    "id": "run-suite",
+                    "action": "run_test_command",
+                    "description": "Run the project-owned unit suite.",
+                    "mutation": "none",
+                    "arguments": {"suite_ref": "unit"},
+                }
+            ],
+            "oracle": {
+                "mode": "deterministic",
+                "rules": [
+                    {
+                        "id": "saved-state-rule",
+                        "kind": "deterministic",
+                        "expectation_id": "saved-state-visible",
+                        "evidence_kind": "structured_log",
+                        "operator": "equals",
+                        "actual_path": "/cases/test_save_status",
+                        "value": "passed",
+                    }
+                ],
+            },
+            "runner_provider": "developer-test",
+        }
+    )
+    return scenario
+
+
+def developer_test_runbook() -> dict:
+    scenario = developer_test_scenario()
+    document = web_runbook()
+    document.update(
+        {
+            "runbook_id": "unit-save-status-r1",
+            "scenario_id": scenario["id"],
+            "scenario_hash": validate_contracts._canonical_json_hash(scenario),
+            "method": scenario["method"],
+            "runner_provider": scenario["runner_provider"],
+            "provider_binding": {
+                "contract_version": "runner-provider-v1",
+                "implementation_version": "developer-test-1.0.0",
+                "defaults_version": "developer-test-defaults-v1",
+            },
+            "preconditions": scenario["preconditions"],
+            "fixture": scenario["fixture"],
+            "steps": [
+                {
+                    **scenario["steps"][0],
+                    "provider_args": {
+                        "argv": ["python3", "-m", "unittest", "-v"],
+                        "cwd": ".",
+                    },
+                    "timeout_ms": 60000,
+                    "retry_policy": "never",
+                    "max_attempts": 1,
+                    "provider_defaults_version": "developer-test-defaults-v1",
+                }
+            ],
+            "oracle": scenario["oracle"],
+            "evidence_plan": [
+                {
+                    "oracle_rule_id": "saved-state-rule",
+                    "evidence_kind": "structured_log",
+                    "after_step_id": "run-suite",
+                }
+            ],
+        }
+    )
+    document["integrity"]["plan_sha256"] = (
+        validate_contracts._canonical_runbook_plan_hash(document)
+    )
+    return document
+
+
+def passing_developer_test_result() -> dict:
+    cases_hash = "sha256:" + "f" * 64
+    document = passing_web_result()
+    document.update(
+        {
+            "run_id": "run-unit-save-status-001",
+            "scenario_id": "unit-save-status",
+            "scenario_hash": validate_contracts._canonical_json_hash(
+                developer_test_scenario()
+            ),
+            "runbook_id": "unit-save-status-r1",
+            "runbook_hash": validate_contracts._canonical_json_hash(
+                developer_test_runbook()
+            ),
+            "runner_provider": "developer-test",
+        }
+    )
+    document["judge"]["evidence_hashes"] = [
+        document["evidence"][0]["sha256"],
+        cases_hash,
+    ]
+    document["evidence"][0]["producer"]["name"] = "developer-test"
+    document["evidence"][0]["record"] = {
+        "argv": ["python3", "-m", "unittest", "-v"],
+        "exit_code": 0,
+    }
+    document["evidence"][1] = {
+        "id": "test-cases",
+        "kind": "structured_log",
+        "collected_at": "2026-08-01T02:00:03Z",
+        "producer": {"type": "runner", "name": "developer-test"},
+        "sha256": cases_hash,
+        "redactions": [],
+        "record": {"cases": {"test_save_status": "passed"}},
+    }
+    document["oracle_results"][0].update(
+        {"evidence_refs": ["test-cases"], "actual": "passed"}
+    )
+    return document
+
+
 def web_runbook() -> dict:
     scenario = web_scenario()
     document = {
@@ -568,6 +697,8 @@ class ContractValidatorTests(unittest.TestCase):
                 return scenario_context or android_scenario(), runbook_context
             if document.get("scenario_id") == "ios-save-status-contract":
                 return scenario_context or ios_scenario(), runbook_context
+            if document.get("scenario_id") == "unit-save-status":
+                return scenario_context or developer_test_scenario(), runbook_context
             return scenario_context or web_scenario(), runbook_context
         if effective_contract != "result-v1":
             return scenario_context, runbook_context
@@ -580,6 +711,11 @@ class ContractValidatorTests(unittest.TestCase):
             return (
                 scenario_context or ios_scenario(),
                 runbook_context or ios_runbook(),
+            )
+        if document.get("scenario_id") == "unit-save-status":
+            return (
+                scenario_context or developer_test_scenario(),
+                runbook_context or developer_test_runbook(),
             )
         return scenario_context or web_scenario(), runbook_context or web_runbook()
 
@@ -974,6 +1110,16 @@ class ContractValidatorTests(unittest.TestCase):
         document = passing_web_result()
         document["evidence"] = [document["evidence"][0]]
         document["oracle_results"][0]["evidence_refs"] = ["runner-command"]
+        self.assertHasCode(document, "E_PASS_OBJECTIVE_STATE_EVIDENCE_REQUIRED")
+
+    def test_developer_test_pass_accepts_test_case_evidence(self) -> None:
+        self.assertValid(developer_test_scenario())
+        self.assertValid(developer_test_runbook())
+        self.assertValid(passing_developer_test_result())
+
+    def test_test_case_evidence_is_not_objective_state_for_ui_runners(self) -> None:
+        document = passing_developer_test_result()
+        document["runner_provider"] = "web-playwright"
         self.assertHasCode(document, "E_PASS_OBJECTIVE_STATE_EVIDENCE_REQUIRED")
 
     def test_ios_result_must_be_not_started_and_unsupported(self) -> None:

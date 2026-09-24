@@ -318,6 +318,8 @@ Verdict-specific objects have these shapes:
 
 A screen label that matches the expected text while the required API or DB state disagrees produces `fail`. A screen label with no required backend evidence produces `insufficient_evidence`, not `pass`.
 
+For a `pass` on `web`, `mobile_web`, or `android` targets, each matched oracle MUST cite objective state evidence (`E_PASS_OBJECTIVE_STATE_EVIDENCE_REQUIRED`). UI runners satisfy this with DOM, accessibility, locator, UI hierarchy, logcat, API, or DB state. A `developer-test` result satisfies it with its own `test_command` or `structured_log` per-case evidence, because the project-owned test command is the state under test; that evidence does not count as objective state for any other runner.
+
 Android evidence cannot establish an iOS verdict. A request to execute a valid iOS contract remains `unsupported` until an XCUITest provider exists.
 
 ## 7. Security and redaction
