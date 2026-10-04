@@ -1,8 +1,10 @@
 # Status
 
-업데이트: 2026-09-01
+업데이트: 2026-10-04
 
 ## Completed
+
+- [x] Full PRD 형식·KPI 3개와 측정 방법·의미 중심 Epic 소제목 정책을 반영하고 활성 1-Pager 경로를 제거했다. [변경 기록](prd-flow/shared/references/revision-log.md)을 따른다. 공통 경로의 승인된 정책만 최신 원격 기준으로 배포한다.
 
 - [x] `ai-hackathon-runner`를 특정 대회에 종속되지 않는 AI 해커톤·프로토타입 대회 실행 프로토콜로 일반화하고 `rignore/skills` 원격 `main`에 배포
 - [x] 스킬명·폴더명·등록 링크·README 자기참조를 `ai-hackathon-runner`로 통일

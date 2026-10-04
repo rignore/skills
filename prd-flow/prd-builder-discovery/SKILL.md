@@ -86,8 +86,6 @@ prd-flow/{feature-slug}/
 ├── gate2/
 │   └── 13-discovery-report.md
 └── notion-pages/
-    ├── problem-one-pager.md    # Gate 1 통과 시 생성
-    ├── full-one-pager.md       # Gate 2 통과 시 생성
     └── full-prd.md             # Gate 2 통과 시 생성
 ```
 
@@ -412,59 +410,14 @@ Sub-Gate 3개 확정 후 4개 항목을 대조한다. **결과 목록 출력 없
 
 ---
 
-#### Gate 1 통과 후 산출물 생성 및 Notion 업로드 (옵션)
+#### Gate 1 통과 후 로컬 산출물 확정
 
 탐구 우선 모드에서는 Sub-Gate에서 초안이 작성된 파일을 교차 검증 결과 반영 후 확정한다.
 
-1. **로컬 파일 확정**: `gate1/01·02·03.md` 3개. 분류 이유까지 본문에 포함
-2. **Problem One-Pager 마크다운 생성**: `notion-pages/problem-one-pager.md` 작성. 구성:
-
-```markdown
-# {제품/기능명} — Problem One-Pager
-
-## 문제 정의
-- 메인 문제: {요약}
-  - 분류 이유: {이유}
-- 부차 문제: {요약}
-- 범위 외: {요약}
-
-## 핵심 가치 가설
-{선택한 형태 + 본문}
-
-## 페르소나
-
-확정된 페르소나를 분류별로 전부 기재한다. 행 생략 금지.
-
-| 페르소나 | 분류 | Job-to-be-Done |
-|---|---|---|
-| {페르소나명} | 메인/서브/범위 외 | {확정된 Job 1줄 — 생략 없이} |
+1. `gate1/01·02·03.md`를 확정하고 분류 이유를 포함한다.
+2. Notion 업로드는 Gate 2에서 Full PRD가 완성된 뒤 수행한다.
 
 ---
-*Status: Problem 정의 완료. 솔루션·범위 확정 진행 중.*
-```
-
-3. **notion-organizer 호출** (`mode: live-page-update`) — **context.json `notion_upload: true`일 때만**:
-   - 입력: `notion-pages/problem-one-pager.md`
-   - context.json 동봉
-   - Notion 부모 페이지 하위에 신규 페이지로 생성
-   - 페이지 상단에 "Status: 솔루션 진행 중" 메타 표시
-   - `notion_upload: false`이면 이 단계를 생략한다 (파일은 로컬에만 존재)
-
-4. 사용자에게 산출물 경로(업로드했다면 Notion 페이지 링크 포함) 전달 후 Auto Phase 진입 알림
-
-### 2. Auto Phase 전반 (솔루션 발산)
-
-`prd-builder-auto`를 **솔루션 발산 모드(`forward`)**로 호출. 호출 시 context.json 전달.
-
-```
-prd-builder-auto 호출
-  mode: forward
-  working_dir: ./prd-flow/{feature-slug}/
-```
-
-prd-builder-auto는 context.json의 `research_dir`에서 도메인 리서치 캐시를 읽어 정합성 검토·페르소나 리뷰의 근거로 활용한다. 페르소나 리뷰 호출 시 "적재된 도메인 리서치 캐시: {목록}" 형태로 명시한다.
-
-산출물: `auto-forward/04-solution-matrix.md`, `auto-forward/05-devil-advocate.md`. 사용자 인터랙션 없음.
 
 ### 3. Macro Gate 1.5 (Solution Space)
 
@@ -628,7 +581,7 @@ V2 이동:
 #### Gate 1.5 통과 후 산출물
 
 1. **로컬 파일 생성**: `gate1.5/06-solution-scope.md`. 채택·V1·V2·범위 외 4개 분류로 명시
-2. **Notion 업로드 없음**: Gate 1.5는 솔루션 잠긴 시점이나 KPI·우선순위 미확정. 부분 업로드는 1-Pager 일관성 깨트림. Gate 2까지 대기
+2. **Notion 업로드 없음**: Gate 1.5는 솔루션 잠긴 시점이나 KPI·우선순위 미확정. 확정 전 문서의 부분 업로드를 피한다. Gate 2까지 대기
 
 ### 4. Auto Phase 후반 (상세화)
 
@@ -711,7 +664,7 @@ Auto Phase 후반 종료 시 `gate2/13-discovery-report.md`를 생성하고 사�
 
 | 선택 | 결과 |
 |---|---|
-| **통과** | Discovery 종료. 전체 1-Pager + Full PRD 생성 후 Phase 2(와이어프레임)로 진행 |
+| **통과** | Discovery 종료. Full PRD 생성 후 Phase 2(와이어프레임)로 진행 |
 | **특정 항목 재작업** | 항목 재작업 모드로 진입 (아래 7번) |
 | **전체 재시작** | Gate 1부터 다시 |
 
@@ -719,52 +672,13 @@ Auto Phase 후반 종료 시 `gate2/13-discovery-report.md`를 생성하고 사�
 
 통과 선택 시:
 
-1. **전체 1-Pager 마크다운 생성**: `notion-pages/full-one-pager.md`
-2. **Full PRD 마크다운 생성**: `notion-pages/full-prd.md`. 결측치는 `[추가 확인 필요: ...]`로 표기. **아래 고정 양식을 반드시 따른다 (섹션 순서·Epic 작성 구조 불변).**
-
-##### Full PRD 고정 양식 (필수 준수)
-
-매 생성마다 동일한 구조를 보장하기 위한 표준 템플릿. 섹션 번호·순서·Epic 작성 구조를 임의로 바꾸지 않는다. §5를 쓰기 전에 `references/full-prd-epic-guidelines.md`를 전부 읽는다.
-
-```
-1. 배경·문제            메인/부차 문제
-2. 목표·핵심 가치
-3. 페르소나             구체화 (아래 작성 규칙)
-4. 솔루션 범위          V1 채택 / V2 / 범위 외
-5. Epic 정의            완료 결과 단위로 1개씩 (EP-01, EP-02 …). Story·Task 미작성
-6. 우선순위             별도 섹션. P0/P1/P2에 EP- 매핑
-7. KPI                  K- 앵커
-8. 리스크               Devil's Advocate 처리 결과
-9. 의사결정·확인 필요    D- / OQ-
-```
-
-**페르소나(§3) 작성 규칙 (구체화 필수)**
-UX/UI 설계 시 직접 참조 가능한 수준으로 메인 페르소나를 구체화한다. 단순 역할·JTBD 1줄로 끝내지 않는다. 다음 항목을 표 + 서술로 포함한다.
-- 기본 속성: 대표 인물(가상명)·연령대·권한·기술 숙련도·담당 규모
-- 사용 맥락: 주/보조 사용 기기, 사용 환경(현장/사무실 등), 사용 시점
-- 특성·심리: 책임·압박, 선호, 의사결정 성향
-- 일상 워크플로우: 이 기능과 관련된 하루 동선을 번호 단계로
-- Pain Point: 현재 불편을 구체 상황으로
-- Job-to-be-Done: 한 문장
-- 정보가 없으면 도메인 리서치 캐시(`research/domain-*.md`)·제품 사용 맥락 기반으로 합리적으로 추정해 채운다(페르소나는 가설 산출물). 서브·범위 외는 1줄로 간단히.
-
-**Epic 정의(§5) 작성 규칙 (불변)**
-- `references/full-prd-epic-guidelines.md`의 분리 기준·PRD와 티켓 경계·이름 원칙·권장 작성 수준을 적용한다.
-- 완료 후 확보되는 사용자 가치 또는 운영 역량을 기준으로 `EP-{n}`을 부여한다. 화면·API·저장소·에이전트 같은 구현 구성요소로 Epic을 나누지 않는다.
-- 각 Epic은 `목적`, `완료 후 상태`, `포함 범위`, `핵심 요구사항`, `범위 밖·주요 연계`, `Epic 완료 판단`만 작성한다. Story·Task·세부 인수 조건은 티켓 단계로 보낸다.
-- **§5에는 우선순위를 표기하지 않는다.** 우선순위는 §6에서만 다룬다.
-- **수식·임계치·파라미터 본문은 PRD에 두지 않는다**(프로토타입/디스크립션 SoT). Epic에는 "판정 기준을 적용한다"처럼 범위와 결과만 적는다.
-- `EP-{n}` 자체가 Epic 앵커이며 PRD가 SoT다(`prd-sync` 규약). 후속 산출물이 이 앵커를 참조한다.
-- 신규 산출물은 `07-epics.md`를 사용한다. 기존 `07-features.md`와 `FN-`은 이전 프로젝트를 읽고 동기화할 때만 지원한다.
-
-**우선순위(§6) 작성 규칙**: P0/P1/P2 각 그룹에 §5에서 정의한 `EP-` ID를 매핑하고 분류 근거를 1줄로 적는다. Epic 본문을 반복 서술하지 않는다(중복 금지).
-
-**제외**: 계산 수식 섹션, QA 케이스 목록은 Full PRD에 두지 않는다(각각 프로토타입·티켓 영역).
+1. **Full PRD 마크다운 생성**: `notion-pages/full-prd.md`. 결측치는 `[추가 확인 필요: ...]`로 표기한다.
+2. **작성·검토 기준 적용**: `../shared/references/full-prd-template.md`를 형식 정본으로 사용한다. 문제 표·독립 문서·코드 설명·KPI 3개와 측정 방법을 적용한다. Epic 구조와 핵심 요구사항 소제목은 `references/full-prd-epic-guidelines.md`를 따른다. Epic 이름 규칙과 요구사항 소제목 규칙을 구분하고, 특정 문형·콜론·글자 수를 강제하지 않는다.
 
 3. **notion-organizer 호출** (`mode: prd-consolidation`) — **context.json `notion_upload: true`일 때만**:
-   - 입력: `notion-pages/full-one-pager.md`, `notion-pages/full-prd.md`, `auto-backward/`의 원본
+   - 입력: `notion-pages/full-prd.md`, `auto-backward/`의 원본
    - context.json 동봉
-   - Gate 1에서 생성한 Problem One-Pager 페이지를 **전체 1-Pager로 업데이트** + 하위 페이지로 **Full PRD** 신규 생성
+   - 지정된 부모 아래 **Full PRD**를 생성하거나 등록된 Full PRD 페이지를 갱신
    - `notion_upload: false`이면 이 단계를 생략한다 (notion-pages/ 파일은 로컬 생성만)
 
 4. 사용자에게 산출물 경로(업로드했다면 Notion 페이지 링크 포함) 전달 후 **Phase 2 자동 핸드오프**:
@@ -828,7 +742,6 @@ wireframe-description + inspection-mode (Phase 3)
 | `auto-backward/10-kpi.md` | (참고용) |
 | `auto-backward/11-qa-list.md` | ai-dlc (수용 기준·QA 참고) |
 | `auto-backward/12-decision-log.md` | 감사 추적·회고용 |
-| `notion-pages/full-one-pager.md` | notion-organizer (옵션 · 1-Pager 페이지 업데이트) |
 | `notion-pages/full-prd.md` | ai-dlc (PRD 입력), notion-organizer (옵션 · Full PRD 페이지 생성) |
 
 ## 사용자 대면 커뮤니케이션 규칙 (게이트 프롬프트·선택지)

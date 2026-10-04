@@ -98,6 +98,8 @@ prd-builder-auto 호출
 
 #### 상세화 가드레일
 
+- Full PRD 형식·문제 표·독립 문서·핵심 KPI 3개와 측정 방법은 `../shared/references/full-prd-template.md`를 따른다. 핵심 요구사항 소제목은 `../prd-builder-discovery/references/full-prd-epic-guidelines.md` §4를 적용한다. 사용자·운영·시스템 요구사항의 의미가 충분한지 검토하고 문형·콜론·글자 수로 판정하지 않는다.
+
 - V1 범위 외 기능은 생성하지 않음 (생성 시도 발생 시 → Hard Stop H5 트리거)
 - **Epic 정의(`07-epics.md`)는 완료 결과 단위로 작성한다**: 먼저 `../prd-builder-discovery/references/full-prd-epic-guidelines.md`를 전부 읽고, 각 Epic을 `EP-{n}`으로 정의한다. 화면·API·저장소·에이전트 같은 구현 구성요소로 나누지 않는다.
 - 각 Epic은 `목적`, `완료 후 상태`, `포함 범위`, `핵심 요구사항`, `범위 밖·주요 연계`, `Epic 완료 판단`만 작성한다. Story·Task·세부 인수 조건·화면 구성·API·schema는 만들지 않는다.

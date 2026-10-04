@@ -195,7 +195,7 @@ wireframe-description Phase 7의 "PRD 수정 계획서 → 컨펌 → 반영" �
 로컬 파일이 항상 SoT다. `context.json`의 `notion_upload`가 `true`인 프로젝트에서만,
 로컬 동기화 완료 후 변경된 문서를 표준 Notion MCP로 미러링한다.
 
-- 대상 페이지 ID는 `context.json.notion_pages`(`one_pager_id`, `full_prd_id` 등)에서 읽는다
+- 대상 페이지 ID는 `context.json.notion_pages`(`full_prd_id` 등)에서 읽는다
 - 반영 도구: `notion-fetch`로 현재 상태 확인 → `notion-update-page`로 해당 블록만 갱신
 - `notion_upload`가 `false`(또는 필드 없음)면 Notion 작업을 일절 하지 않는다
 - Notion 반영분은 리포트의 "수정된 파일" 아래 "반영된 Notion 페이지: {URL}"로 병기한다

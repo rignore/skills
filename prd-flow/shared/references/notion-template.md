@@ -15,8 +15,7 @@ prd-flow 스킬 세트가 Notion에 업로드할 때 사용하는 표준 페이�
 │
 └── [하위 페이지들]
     ├── 📋 Working Doc           (최초 업로드 시 함께 생성)
-    ├── 📌 1-Pager PRD            (통합 산출 시 자동 생성)
-    └── 📐 Full PRD               (통합 산출 시 자동 생성, Full 모드만)
+    └── 📐 Full PRD               (통합 산출 시 자동 생성)
 ```
 
 ## 상위 페이지 (허브)
@@ -28,7 +27,6 @@ prd-flow 스킬 세트가 Notion에 업로드할 때 사용하는 표준 페이�
 | 프로퍼티명 | 타입 | 값 |
 |---|---|---|
 | 작성자 | Person | 작성자 |
-| 모드 | Select | One-Page / Full |
 | 전체 상태 | Select | 작성 중 / 검토 중 / 확정 / 보류 |
 | 마지막 수정일 | Date | 자동 |
 | AI 기능 포함 | Checkbox | 여부 |
@@ -43,7 +41,6 @@ prd-flow 스킬 세트가 Notion에 업로드할 때 사용하는 표준 페이�
 # PRD - {제품/기능명}
 
 > 작성일: {YYYY-MM-DD}
-> 모드: {One-Page | Full}
 > AI 기능 포함: {예 | 아니오 | 미확정}
 > 작성자: {작성자}
 > 이해관계자: {목록}
@@ -62,7 +59,7 @@ prd-flow 스킬 세트가 Notion에 업로드할 때 사용하는 표준 페이�
 | KPI & 성공 기준 | 대기 |
 | 통합 리뷰 | {대기 | Skip} |
 | QA 테스트 리스트 | {대기 | Skip} |
-| 통합 산출 (1-Pager / Full PRD) | 대기 |
+| 통합 산출 (Full PRD) | 대기 |
 
 상태 값: `대기`, `작성 중`, `검토 중`, `확정`, `Skip`
 
@@ -73,8 +70,7 @@ prd-flow 스킬 세트가 Notion에 업로드할 때 사용하는 표준 페이�
 > 통합 산출 완료 후 다음 하위 페이지를 단독 공유할 수 있습니다.
 
 - 📋 **Working Doc** ({링크}) — 작성 과정·페르소나 리뷰 (PM·내부 팀)
-- 📌 **1-Pager PRD** ({링크 또는 "통합 산출 완료 후 생성됨"}) — 임원진·세일즈·마케팅
-- 📐 **Full PRD** ({링크 또는 "Full 모드 통합 산출 완료 후 생성됨"}) — 엔지니어·QA·디자이너
+- 📐 **Full PRD** ({링크 또는 "통합 산출 완료 후 생성됨"}) — 엔지니어·QA·디자이너
 
 ---
 
@@ -95,7 +91,7 @@ prd-flow 스킬 세트가 Notion에 업로드할 때 사용하는 표준 페이�
 # 📋 Working Doc — {제품/기능명}
 
 > 상위 페이지: {링크}
-> 이 페이지는 PRD 작성 과정·페르소나 리뷰를 누적합니다. 외부 공유는 1-Pager PRD / Full PRD 페이지를 사용하세요.
+> 이 페이지는 PRD 작성 과정·페르소나 리뷰를 누적합니다. 외부 공유는 Full PRD 페이지를 사용하세요.
 
 ---
 
@@ -149,7 +145,7 @@ prd-flow 스킬 세트가 Notion에 업로드할 때 사용하는 표준 페이�
 
 🟡 아직 작성되지 않았습니다.
 
-작성 예정 항목: 정량 KPI, 측정 방법, 베이스라인
+작성 예정 항목: 핵심 KPI 3개, 정의, 측정 방법
 
 ---
 
@@ -191,21 +187,12 @@ prd-flow 스킬 세트가 Notion에 업로드할 때 사용하는 표준 페이�
 |---|---|---|
 ```
 
-## 하위 페이지: 📌 1-Pager PRD
-
-통합 산출 단계에서 생성. 양식·시스템 프롬프트는 `shared/references/1pager-prd-template.md` 참조.
-
-- One-Page 모드 / Full 모드 모두 생성
-- 임원진·세일즈·마케팅 단독 공유 가능 (URL·권한 분리)
-- A4 1장 분량 강제
-
 ## 하위 페이지: 📐 Full PRD
 
-통합 산출 단계의 Full 모드에서 생성. 양식·시스템 프롬프트는 `shared/references/full-prd-template.md` 참조.
+통합 산출 단계에서 생성. 양식·시스템 프롬프트는 `shared/references/full-prd-template.md` 참조.
 
-- Full 모드만 생성 (One-Page 모드에서는 만들지 않음)
 - 엔지니어·QA·디자이너 단독 공유 가능
-- 티켓 위계(Epic 하위에 Story·Task 같은 레벨, 각각 Sub-task) 적용
+- Epic 단위 요구사항 작성. Story·Task 분해는 후속 티켓 단계에서 수행
 
 ## 최초 업로드 절차 (notion_upload 활성 시)
 
@@ -213,23 +200,22 @@ prd-flow 스킬 세트가 Notion에 업로드할 때 사용하는 표준 페이�
 2. 부모 페이지 식별 (사용자가 제공한 URL 또는 페이지명 → `notion-search`)
 3. **상위 페이지 생성** — `notion-create-pages`로 빈 허브 페이지 생성, 메타·산출물 진행 상태·콜아웃·변경 이력 표 배치
 4. **Working Doc 하위 페이지 생성** — 상위 페이지 자식으로 `notion-create-pages` 호출, 검토 영역별 토글·페르소나 리뷰 로그 빈 구조 배치
-5. 상위 페이지 콜아웃에 Working Doc 링크 삽입, 1-Pager / Full PRD는 "통합 산출 완료 후 생성됨" 플레이스홀더로 표시
+5. 상위 페이지 콜아웃에 Working Doc 링크 삽입, Full PRD는 "통합 산출 완료 후 생성됨" 플레이스홀더로 표시
 6. 변경 이력에 "PRD 페이지 생성 (상위 + Working Doc)" 행 추가
 7. 두 페이지 URL 모두 사용자에게 안내
 
 ## 통합 산출물 업로드 절차
 
-1. **1-Pager PRD 페이지 생성** — 상위 페이지 자식으로 `notion-create-pages` 호출, `shared/references/1pager-prd-template.md`의 출력 양식 적용
-2. (Full 모드만) **Full PRD 페이지 생성** — 상위 페이지 자식으로 `notion-create-pages` 호출, `shared/references/full-prd-template.md`의 출력 양식 적용
-3. 상위 페이지 콜아웃의 1-Pager / Full PRD 링크 갱신
-4. 변경 이력에 "1-Pager PRD 생성", (Full 모드만) "Full PRD 생성" 행 추가
+1. **Full PRD 페이지 생성** — 상위 페이지 자식으로 `notion-create-pages` 호출, `shared/references/full-prd-template.md`의 출력 양식 적용
+2. 상위 페이지 콜아웃의 Full PRD 링크 갱신
+3. 변경 이력에 "Full PRD 생성" 행 추가
 
 ## 통합 산출물 재업로드 (갱신) 시
 
-선행 산출물 수정 후 사용자가 "1-Pager·Full PRD 갱신"을 요청하면:
+선행 산출물 수정 후 사용자가 "Full PRD 갱신"을 요청하면:
 
-1. 로컬 산출물을 먼저 갱신한 뒤, 기존 1-Pager / Full PRD 하위 페이지를 **덮어쓰기** (`notion-update-page` 또는 본문 블록 교체)
-2. 변경 이력에 "1-Pager·Full PRD 갱신: {시점}" 행 추가
+1. 로컬 산출물을 먼저 갱신한 뒤, 기존 Full PRD 하위 페이지를 **덮어쓰기** (`notion-update-page` 또는 본문 블록 교체)
+2. 변경 이력에 "Full PRD 갱신: {시점}" 행 추가
 3. 상위 페이지의 마지막 수정일 갱신
 
 ## 부분 업데이트 시 주의사항
@@ -246,7 +232,6 @@ prd-flow 스킬 세트가 Notion에 업로드할 때 사용하는 표준 페이�
 
 - **상위 페이지**: PM·이해관계자 전체 (작성 진행 추적용)
 - **Working Doc**: PM·내부 팀만 (작성 과정·페르소나 리뷰 노출 방지)
-- **1-Pager PRD**: 임원진·세일즈·마케팅 (외부 공유 가능)
 - **Full PRD**: 엔지니어·QA·디자이너 (내부 또는 협력사)
 
 ## 기존 PRD 페이지 업데이트 시
@@ -263,7 +248,7 @@ prd-flow 스킬 세트가 Notion에 업로드할 때 사용하는 표준 페이�
 
 ```
 이 PRD 페이지는 구버전(단일 페이지) 구조입니다.
-새 구조(상위 + Working Doc + 1-Pager/Full PRD 하위 페이지)로 마이그레이션할까요?
+새 구조(상위 + Working Doc + Full PRD 하위 페이지)로 마이그레이션할까요?
 - 예 → 기존 영역별 토글을 Working Doc 하위 페이지로 이동, 상위 페이지 정리
 - 아니오 → 구버전 구조 유지하며 요청된 영역만 추가
 ```

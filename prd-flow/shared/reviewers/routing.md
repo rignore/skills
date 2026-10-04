@@ -14,7 +14,7 @@
 | KPI | Data Analyst, Product Lead, QA Lead | Editorial Reviewer | - |
 | 통합 리뷰 | Paranoid Reviewer, Editorial Reviewer (둘 다 강력 권장) | CEO/Founder, 미진했던 페르소나 | - |
 | QA 테스트 리스트 | QA Lead (강력 권장), Staff Engineer, Paranoid Reviewer | AI/Agent Engineer(에이전트 사양 있을 때), Data Analyst, Editorial Reviewer | **Mobile Engineer (강력 권장)** |
-| 통합 산출 (1-Pager / Full PRD) | Editorial Reviewer (선택, 가독성·용어·논리 통합 검토) | Paranoid Reviewer (선택, 통합 일관성), CEO/Founder (선택, 1-Pager 임원 시각) | **Mobile Engineer (조건부 — 모바일 키워드 감지 시에만, OS·기기·배포 정책 통합 누락 점검)** |
+| 통합 산출 (Full PRD) | Editorial Reviewer (선택, 가독성·용어·논리 통합 검토) | Paranoid Reviewer (선택, 통합 일관성), CEO/Founder (선택, 제품 의사결정 관점) | **Mobile Engineer (조건부 — 모바일 키워드 감지 시에만, OS·기기·배포 정책 통합 누락 점검)** |
 
 > **Editorial Reviewer 사용 기준**: 다른 페르소나가 *내용*을 본다면 Editorial Reviewer는 *문서 자체의 품질*(가독성·용어 일관성·논리·사실 정확성)을 본다. 모든 검토 영역에서 호출 가능하지만, 통합 리뷰 영역에서는 Paranoid Reviewer와 함께 강력 권장.
 
