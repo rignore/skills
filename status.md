@@ -1,6 +1,6 @@
 # Status
 
-업데이트: 2026-09-01
+업데이트: 2026-10-13
 
 ## Completed
 
@@ -25,12 +25,19 @@
 - [x] Full PRD 기능 요구사항을 `EP-` Epic 단위로 통일하고 Epic 분리 기준·PRD와 티켓의 경계·이름 원칙·권장 작성 수준 반영
 - [x] `prd-flow`의 PRD 생성·Notion 투영·동기화·티켓화·wireframe 연계가 Epic 정본을 사용하도록 갱신하고 검증
 
+- [x] Spec-driven QA 스킬을 Claude Code·Codex·Gemini에 등록(2026-10-13). 공통 경로 `~/.agents/skills/prd-flow/spec-driven-qa`가 이 저장소의 `prd-flow/spec-driven-qa`를 가리키는 링크이고, 세 도구의 등록 위치가 그 공통 경로를 가리킨다. 그전에는 어느 도구에서도 스킬이 보이지 않아 2026-09-06 QA를 손으로 했다. 팀 배포용 저장소 반영은 하지 않았다.
+- [x] Spec-driven QA `SKILL.md`에 요소의 부재와 숨김을 구분해 증명하는 규칙을 올림(2026-10-13, 커밋 전). 부재는 `locator_result`의 `/count equals 0`으로, 숨김은 `count` 1 이상과 `visible: false`를 함께 확인한다. `absent` 연산자는 JSON 경로가 없는지를 보므로 `/count`에는 쓰지 않는다.
 ## Pending
 
 - [ ] 실제 해커톤 입력으로 forward test 후 시간 배분·Mock Judge rubric 보정
 - [ ] Spec-driven QA P4의 실제 독립 label 30건 이상으로 Cohen's κ 0.6 이상과 자동 Pass precision 기준 확인
 - [ ] Spec-driven QA P6의 staging 환경에서 read-only artifact root와 validator hash를 설정하고 실제 Notion Done 전이 smoke test 실행
 - [ ] iOS XCUITest provider 구현
+- [ ] Spec-driven QA 보완 검토 4건(2026-10-13 검토, 반영 여부는 사람이 정한다). 2026-09-06에 이 스킬 없이 손으로 한 QA의 경험을 계약 문서와 대조해 나온 항목이다.
+  - 사람이 정한 사양 충돌 결정을 적는 자리: 판정 규약은 "우선순위가 따로 명시되지 않았다면 Judge가 고르지 않는다"고 쓰지만 명시할 입력이 없어, 사람이 한 번 정한 충돌도 매번 `conflict`로 다시 올라온다. 검토 결론은 결정을 판정 단계가 아니라 시나리오 승인 전에 반영하는 것이다. 판정 단계에서 진 쪽 검사를 빼면 완료된 결과가 모든 oracle 규칙을 정확히 한 번씩 덮어야 한다는 검증 규칙(`E_ORACLE_RESULT_COVERAGE_INVALID`)에 걸리고, 이긴 쪽 사양을 검사하는 규칙도 생기지 않는다. 결정을 적는 형태는 미정이다. 후보는 결정 문서를 별도 source로 bundle에 넣는 방식과 anchor에 선택 관계 필드를 두는 방식 2가지다.
+  - 나중 결정이 앞 사양을 덮어쓴 관계: 위 항목과 묶어 다룬다. 날짜 순서로 추론하지 않고 명시된 결정만 따른다.
+  - `shared_test` 환경의 판정 규칙: 격리 환경에만 규칙이 있다. 검토 결론은 연산자 종류로 가르지 않고, 검사 대상 데이터의 범위를 시나리오에 적은 뒤 Judge가 식별자를 결정론적으로 대조하는 방향이다. 지금 Judge는 실행 식별자를 보지 않는다.
+  - 충돌 후보를 찾는 보조 도구: `source-conflicts-v1`을 받는 쪽만 있고 만드는 쪽이 없다. 같은 expectation이 함께 인용한 anchor 쌍을 열거하는 작은 도구와 시나리오 초안 단계의 사람 검토 중 어느 쪽이 나은지 근거가 없어 보류한다.
 - [ ] Direct Notion Done 변경을 찾는 reconcile 정책 구현
 
 ## Spec-driven QA 현재 상태
