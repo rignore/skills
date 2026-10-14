@@ -2,7 +2,7 @@
 name: notion-organizer
 description: >
   Notion 페이지에 작성된 텍스트를 업무용으로 재구조화하는 스킬. prd-flow의 선택적
-  Notion 업로더로서 3종 모드(live-page-update · prd-consolidation · bulk-upload)를
+  Notion 업로더로서 2종 모드(prd-consolidation · bulk-upload)를
   지원한다. 사용자가 기존 Notion 페이지나 텍스트를 정리·구조화·재구성해 달라고
   요청할 때 사용한다.
 ---
@@ -434,90 +434,31 @@ Toggle을 피해야 하는 경우:
 
 ```
 notion-organizer 호출
-  mode: live-page-update | prd-consolidation | bulk-upload
+  mode: prd-consolidation | bulk-upload
   working_dir: ./prd-flow/{feature-slug}/
   notion_parent_page_id: {사용자 지정 Notion 부모 페이지 ID}  (첫 호출 시만 필수 — 없으면 사용자에게 요청)
 ```
 
 | 모드 | 호출 시점 | 동작 요약 |
 |---|---|---|
-| `live-page-update` | Gate 1 통과 후 | Problem One-Pager 생성. Gate 2 후 재호출 시 Status 업데이트 |
-| `prd-consolidation` | Gate 2 통과 후 | 1-Pager 전체 업데이트 + Full PRD 하위 페이지 신규 생성 |
+| `prd-consolidation` | Gate 2 통과 후 | Full PRD 생성 또는 갱신 |
 | `bulk-upload` | Phase 5 (전체 워크플로우 종료 후) | 작업 디렉토리 산출물(PRD 페이지·디스크립션) → Notion 페이지 일괄 매핑 |
 
 ---
 
-### 모드 1 · live-page-update
+### 모드 1 · prd-consolidation
 
-**Gate 1 통과 후 호출** — Problem One-Pager 생성.
-
-**동작:**
-
-1. `context.json`에서 `feature_slug`, `notion_upload` 읽기 (`notion_upload: false`면 종료)
-2. `context.json.notion_pages.one_pager_id` 확인
-   - **없으면**: `notion_parent_page_id` 하위에 새 페이지 생성 → ID를 `context.json.notion_pages.one_pager_id`에 기록
-   - **있으면**: 기존 페이지 업데이트 (append-only: 기존 콘텐츠 유지, Status Callout만 갱신)
-3. 생성 소스: `gate1/01-problem.md`, `gate1/02-value-hypothesis.md`, `gate1/03-personas.md`
-
-**Problem One-Pager 구조:**
-
-```
-H1: {feature_slug} — Problem One-Pager
-Callout(기본): 상태: Problem 정의 완료 | 최종 수정: {YYYY-MM-DD}
-Divider
-H2: 문제 정의
-  (01-problem.md 내용 — Callout + Bulleted List)
-H2: 핵심 가치 가설
-  (02-value-hypothesis.md 내용)
-H2: 주요 페르소나
-  Toggle H3 per persona (03-personas.md 핵심만 노출, 상세는 접힘)
-```
-
-**Gate 2 이후 재호출 시:**
-- 페이지 본문 유지 (append-only)
-- Status Callout 텍스트만 "Discovery 완료"로 업데이트
-- prd-consolidation 모드로 이어서 진행
-
----
-
-### 모드 2 · prd-consolidation
-
-**Gate 2 통과 후 호출** — 기존 1-Pager 업데이트 + Full PRD 하위 페이지 신규 생성.
+**Gate 2 통과 후 호출** — 지정된 부모 아래 Full PRD 생성 또는 기존 Full PRD 갱신.
 
 **동작:**
 
-1. `context.json.notion_pages.one_pager_id` 페이지를 "전체 1-Pager"로 업데이트
-   - 기존 Problem 섹션 유지 (append-only)
-   - 솔루션 범위 섹션 추가 (`gate1.5/06-solution-scope.md`)
-   - KPI 섹션 추가 (`auto-backward/10-kpi.md`)
-   - Status Callout: "Discovery 완료"로 업데이트
-   - Full PRD 페이지 링크 추가 (생성 후)
-2. 하위 페이지로 Full PRD 신규 생성(`notion-create-pages`, 부모 = 사용자 지정 페이지) → 반환된 page_id를 `context.json.notion_pages.full_prd_id`에 기록
-   - 소스는 로컬 `notion-pages/full-prd.md`. PRD 본문은 표·콜아웃(`> [!NOTE]`)·토글(`<details>`)·코드블록을 지원하되, 계산 수식·임계치는 PRD가 아니라 디스크립션이 SoT다.
-   - 이후 버전 갱신은 동일 페이지를 `notion-update-page`로 업데이트하고 페이지 상단 변경이력에 1줄 추가한다(상세: prd-sync의 "Notion 반영 (옵션)").
-
-**Full PRD 페이지 구조:**
-
-```
-H1: {feature_slug} — Full PRD
-Callout(기본): 상태: Discovery 완료 | 최종 수정: {YYYY-MM-DD}
-Table of Contents
-Divider
-H2: 문제 정의             (gate1/01-problem.md)
-H2: 핵심 가치 가설         (gate1/02-value-hypothesis.md)
-H2: 페르소나              (gate1/03-personas.md)
-H2: 솔루션 범위           (gate1.5/06-solution-scope.md)
-H2: Epic 정의            (auto-backward/07-epics.md — H3 per Epic)
-H2: AI 에이전트 사양       (auto-backward/08-ai-agent-spec.md — 파일 존재 시만)
-H2: 우선순위              (auto-backward/09-priorities.md — P0/P1/P2 Toggle H3)
-H2: KPI                  (auto-backward/10-kpi.md — Simple Table)
-H2: QA 시나리오           (auto-backward/11-qa-list.md)
-H2: 결정 로그 (Toggle)    (auto-backward/12-decision-log.md)
-```
+1. `context.json.notion_pages.full_prd_id`가 없으면 지정된 부모 아래 Full PRD를 생성하고 ID를 기록한다. 있으면 승인된 범위를 갱신한다.
+2. 생성 소스는 `notion-pages/full-prd.md`다. 형식·문제 표·KPI 구성은 `../shared/references/full-prd-template.md`, Epic 핵심 요구사항 소제목은 `../prd-builder-discovery/references/full-prd-epic-guidelines.md` §4를 따른다.
+3. 표·콜아웃·토글을 Notion 블록으로 옮기고 재조회해 본문·계층·참조를 대조한다. 변경 이력과 버전 처리는 `prd-sync`의 Notion 반영 규칙을 따른다.
 
 ---
 
-### 모드 3 · bulk-upload
+### 모드 2 · bulk-upload
 
 **Phase 5 호출** — 작업 디렉토리 산출물(PRD 페이지·디스크립션) → Notion 일괄 업로드.
 
@@ -525,7 +466,7 @@ H2: 결정 로그 (Toggle)    (auto-backward/12-decision-log.md)
 
 1. `context.json` 읽어서 `notion_upload` 확인(`false`면 종료) + `notion_pages` 기생성 ID 확인
 2. 파일 → Notion 매핑 표 순서대로 읽기 → 페이지 생성 또는 append-only 업데이트
-3. 기생성 페이지(one_pager_id, full_prd_id)는 덮어쓰지 않고 하단에 신규 섹션 추가
+3. 기생성 페이지(full_prd_id)는 덮어쓰지 않고 하단에 신규 섹션 추가
 4. 완료 후 요약 리포트 (업로드 페이지 N개, 실패 항목)
 
 **파일 → Notion 매핑:**
@@ -535,14 +476,13 @@ H2: 결정 로그 (Toggle)    (auto-backward/12-decision-log.md)
 | gate1/01-problem.md | 01-문제 정의 | Callout + Bulleted List | bulk |
 | gate1/02-value-hypothesis.md | 02-핵심 가치 가설 | Simple Table | bulk |
 | gate1/03-personas.md | 03-페르소나 | Toggle H3 per persona | bulk |
-| gate1.5/06-solution-scope.md | 04-솔루션 범위 | Simple Table + Toggle | prd-consolidation, bulk |
+| gate1.5/06-solution-scope.md | 04-솔루션 범위 | Simple Table + Toggle | bulk |
 | auto-backward/07-epics.md | 05-Epic 정의 | H3 per Epic | bulk |
 | auto-backward/08-ai-agent-spec.md | 06-AI 에이전트 사양 (조건부) | Toggle H2 | bulk |
 | auto-backward/09-priorities.md | 07-우선순위 | P0/P1/P2 Toggle H3 | bulk |
-| auto-backward/10-kpi.md | 08-KPI | Simple Table + placeholder | prd-consolidation, bulk |
+| auto-backward/10-kpi.md | 08-KPI | Simple Table + placeholder | bulk |
 | auto-backward/11-qa-list.md | 09-QA 시나리오 | Inline Database | bulk |
 | auto-backward/12-decision-log.md | Full PRD 하단 (Toggle) | Full PRD 페이지 하단 추가 | bulk |
-| notion-pages/full-one-pager.md | (기존 one_pager_id 업데이트) | prd-consolidation 결과 보강 | bulk |
 | notion-pages/full-prd.md | (기존 full_prd_id 업데이트) | prd-consolidation 결과 보강 | bulk |
 | wireframe/manifest.json + {screen}_description.md | 10-디스크립션 | H2 per screen | bulk |
 | gate2/13-discovery-report.md | Full PRD 상단 요약 Callout | Callout(초록) 삽입 | bulk |
@@ -557,7 +497,7 @@ H2: 결정 로그 (Toggle)    (auto-backward/12-decision-log.md)
 
 ### context.json 확장 스키마 (PRD-Flow 연계 시)
 
-`live-page-update` 최초 호출 후 `notion_pages` 필드를 context.json에 추가·기록:
+`prd-consolidation` 최초 호출 후 `notion_pages` 필드를 context.json에 추가·기록:
 
 ```json
 {
@@ -568,7 +508,6 @@ H2: 결정 로그 (Toggle)    (auto-backward/12-decision-log.md)
   "notion_upload": true,
   "created_at": "...",
   "notion_pages": {
-    "one_pager_id": "abc123...",   // Gate 1 통과 후 채워짐
     "full_prd_id": null            // Gate 2 통과 후 채워짐
   }
 }
