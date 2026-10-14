@@ -40,6 +40,10 @@ Treat a missing web or Android provider as `blocked`, not `fail`. Treat iOS exec
 - Run saved runbooks deterministically in CI. Do not call an LLM to select actions, locators, fixtures, retries, or verdicts during replay.
 - Accept structured logs, DOM or accessibility state, UI hierarchy, locator results, network or console errors, API or database state, Android logcat, test command output, and build or artifact hashes as evidence.
 - Treat images, screenshots, and video as optional context only. Never require them for Pass and never use them as the sole Pass evidence.
+- Keep presence and visibility separate when an expectation says an element is missing or hidden. Collapsed, conditionally rendered, and off-screen elements exist in the DOM without being visible.
+  - Prove absence with `locator_result` and the rule `/count equals 0` on the frozen locator. Do not use the `absent` operator on `/count`: the runner always records `count`, and `absent` tests whether the JSON path is missing, so it never matches.
+  - Prove "present but hidden" with `count` of 1 or more together with `visible: false`. `visible: false` alone proves nothing, because the collector also records `false` when the visibility check itself errors.
+  - Never infer absence from a whole accessibility-tree dump or from a failed collection. `accessibility_state` records only the role and ARIA state of the named locator. A collection that did not run is missing evidence, not evidence of absence.
 - Reject an execution agent's self-reported success as evidence.
 - Return exactly one verdict: `pass`, `fail`, `conflict`, `insufficient_evidence`, `blocked`, or `unsupported`.
 
