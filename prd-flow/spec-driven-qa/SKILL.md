@@ -45,6 +45,7 @@ Treat a missing web or Android provider as `blocked`, not `fail`. Treat iOS exec
   - Prove "present but hidden" with `count` of 1 or more together with `visible: false`. `visible: false` alone proves nothing, because the collector also records `false` when the visibility check itself errors.
   - Never infer absence from a whole accessibility-tree dump or from a failed collection. `accessibility_state` records only the role and ARIA state of the named locator. A collection that did not run is missing evidence, not evidence of absence.
 - Reject an execution agent's self-reported success as evidence.
+- Keep sign-in outside the runbook. Never put accounts, passwords, or login actions in a scenario, config, fixture, or runbook. For an authenticated web target, a human signs in once and saves a Playwright storage-state file outside version control; the runner receives it through `--storage-state` and records only `session_state: preserved`. Read the "로그인 상태" section of [web-playwright-provider.md](references/web-playwright-provider.md) before verifying any page behind a login.
 - Return exactly one verdict: `pass`, `fail`, `conflict`, `insufficient_evidence`, `blocked`, or `unsupported`.
 
 ## Enforce Safety
@@ -86,6 +87,7 @@ Compile and replay web runbooks with Node.js:
 ```bash
 node scripts/compile-web-runbook.mjs --scenario scenario.json --config web-project-config.json --output runbook.json
 node scripts/run-web-playwright.mjs --request runner-request.json --runbook runbook.json --output runner-output.json
+node scripts/run-web-playwright.mjs --request runner-request.json --runbook runbook.json --storage-state /outside/repo/auth.json --output runner-output.json
 ```
 
 The compiler uses only Node.js standard-library modules. The runner requires a version-pinned Playwright installation and Chromium binary supplied by the host project or an explicit `--playwright-module-root`.

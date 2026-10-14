@@ -46,7 +46,9 @@ test("P5 examples contain no company adapter or product coupling", async () => {
     "android/spec.md", "android/scenario.json", "android/android-config.json",
   ];
   const joined = (await Promise.all(files.map((file) => readFile(path.join(root, file), "utf8")))).join("\n").toLowerCase();
-  for (const forbidden of ["notion", "prd-flow-copilot", "protect go", "protectgo", "idbrnd", "database id"]) {
+  // Company identifiers are assembled from fragments so the public repository never contains them verbatim.
+  const forbiddenTerms = ["notion", ["prd-flow-", "copilot"].join(""), ["protect", " go"].join(""), ["protect", "go"].join(""), ["idb", "rnd"].join(""), "database id"];
+  for (const forbidden of forbiddenTerms) {
     assert.equal(joined.includes(forbidden), false, `forbidden coupling: ${forbidden}`);
   }
 });
