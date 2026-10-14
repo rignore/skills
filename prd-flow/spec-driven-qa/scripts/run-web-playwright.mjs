@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { access } from "node:fs/promises";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -49,6 +50,22 @@ async function loadPlaywright(moduleRoot) {
       throw new ContractError("E_PLAYWRIGHT_UNAVAILABLE", "playwright could not be loaded from the explicit module root", "$", { module_root: path.resolve(moduleRoot) });
     }
   }
+}
+
+// Authentication state is prepared outside the runbook by the project runtime (for example a
+// Playwright storage-state file saved after a human signs in). The path is never part of the
+// request, runbook, config hash, or output; only the fact that a preserved session was used is
+// recorded as `session_state`. A missing file blocks execution before the browser starts.
+async function resolveStorageState(storageStatePath) {
+  if (storageStatePath === undefined || storageStatePath === null) return undefined;
+  requireNonEmptyString(storageStatePath, "E_STORAGE_STATE_INVALID", "$.storage_state", "storage state path must be a non-empty string");
+  const resolved = path.resolve(storageStatePath);
+  try {
+    await access(resolved);
+  } catch {
+    throw new ContractError("E_STORAGE_STATE_UNAVAILABLE", "storage state file is not readable; sign in again and save a new storage state", "$.storage_state");
+  }
+  return resolved;
 }
 
 function validateRequest(request, runbook) {
@@ -200,8 +217,8 @@ async function collectEvidence(page, plan, observations) {
   }
 }
 
-function evidenceItem(id, kind, record, collectedAt, redactions = []) {
-  return {
+function evidenceItem(id, kind, record, collectedAt, redactions = [], oracleRuleId = undefined) {
+  const item = {
     id,
     kind,
     collected_at: collectedAt,
@@ -210,6 +227,10 @@ function evidenceItem(id, kind, record, collectedAt, redactions = []) {
     redactions,
     record,
   };
+  // Planned evidence names the oracle rule it was collected for, so the judge can tell apart two
+  // records of the same kind collected after the same step.
+  if (oracleRuleId !== undefined) item.oracle_rule_id = oracleRuleId;
+  return item;
 }
 
 function safeRuntimeError(error, stepId) {
@@ -223,10 +244,12 @@ function safeRuntimeError(error, stepId) {
   };
 }
 
-export async function runWebPlaywright({ request, runbook, playwrightModuleRoot = undefined }) {
+export async function runWebPlaywright({ request, runbook, playwrightModuleRoot = undefined, storageStatePath = undefined }) {
   const startedAt = new Date().toISOString();
+  let storageState;
   try {
     validateRequest(request, runbook);
+    storageState = await resolveStorageState(storageStatePath);
   } catch (error) {
     if (
       !(error instanceof ContractError)
@@ -260,6 +283,7 @@ export async function runWebPlaywright({ request, runbook, playwrightModuleRoot 
     runbook_id: runbook.runbook_id,
     plan_sha256: runbook.integrity.plan_sha256,
     attempt: request.attempt,
+    storage_state: storageState ? "preserved" : "fresh",
   };
   evidence.push(evidenceItem("runner-command", "test_command", commandRecord, startedAt));
   if (request.build !== null) {
@@ -280,6 +304,7 @@ export async function runWebPlaywright({ request, runbook, playwrightModuleRoot 
       deviceScaleFactor: firstContext.device_scale_factor,
       isMobile: firstContext.is_mobile,
       hasTouch: firstContext.has_touch,
+      storageState,
     });
     page = await context.newPage();
     page.on("console", (message) => {
@@ -324,7 +349,7 @@ export async function runWebPlaywright({ request, runbook, playwrightModuleRoot 
           try {
             const record = await collectEvidence(page, plan, observations);
             const id = `evidence-${String(evidence.length + 1).padStart(3, "0")}`;
-            evidence.push(evidenceItem(id, plan.evidence_kind, record, new Date().toISOString(), plan.evidence_kind === "storage_state" ? ["storage values replaced with SHA-256"] : []));
+            evidence.push(evidenceItem(id, plan.evidence_kind, record, new Date().toISOString(), plan.evidence_kind === "storage_state" ? ["storage values replaced with SHA-256"] : [], plan.oracle_rule_id));
             result.evidence_refs.push(id);
           } catch (error) {
             const evidenceError = { ...safeRuntimeError(error, step.id), code: "E_EVIDENCE_COLLECTION_FAILED", category: "evidence" };
@@ -440,11 +465,13 @@ async function main() {
     "--runbook": { name: "runbook", required: true },
     "--output": { name: "output", required: true },
     "--playwright-module-root": { name: "playwright_module_root" },
+    "--storage-state": { name: "storage_state" },
   });
   const output = await runWebPlaywright({
     request: await readJson(options.request),
     runbook: await readJson(options.runbook),
     playwrightModuleRoot: options.playwright_module_root,
+    storageStatePath: options.storage_state,
   });
   await writeJson(options.output, output);
   process.stdout.write(`${JSON.stringify({ valid: true, output: options.output, execution_status: output.execution.status })}\n`);

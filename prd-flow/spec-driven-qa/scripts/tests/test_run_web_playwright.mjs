@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { mkdtemp, writeFile } from "node:fs/promises";
 import http from "node:http";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
 
 import { compileWebRunbook } from "../compile-web-runbook.mjs";
@@ -16,10 +19,12 @@ function startServer() {
       return;
     }
     if (request.url === "/records/fixture") {
+      const signedIn = /(?:^|;\s*)qa-session=ok(?:;|$)/.test(request.headers.cookie ?? "");
+      const state = signedIn ? "ready" : "anonymous";
       response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       response.end(`<!doctype html>
         <html lang="en"><body>
-          <div data-testid="record-state" role="status" aria-label="Record state">ready</div>
+          <div data-testid="record-state" role="status" aria-label="Record state">${state}</div>
           <script>localStorage.setItem("qa-state", "ready-secret-value");</script>
         </body></html>`);
       return;
@@ -167,3 +172,42 @@ for (const platform of ["web", "mobile_web"]) {
     }
   });
 }
+
+test("returns not_started when the storage state file is missing", async () => {
+  const scenario = makeScenario("web");
+  const runbook = compileWebRunbook({ scenario, config: makeConfig("http://127.0.0.1:4173", scenario) });
+  const output = await runWebPlaywright({ request: makeRequest(runbook, "web"), runbook, storageStatePath: "/nonexistent/storage-state.json" });
+  assert.equal(output.execution.status, "not_started");
+  assert.equal(output.errors[0].code, "E_STORAGE_STATE_UNAVAILABLE");
+  assert.equal(JSON.stringify(output).includes("/nonexistent"), false);
+});
+
+test("replays with a preserved sign-in state and records only session_state", { skip: !moduleRoot }, async () => {
+  const server = await startServer();
+  try {
+    const address = server.address();
+    const origin = `http://127.0.0.1:${address.port}`;
+    const directory = await mkdtemp(path.join(os.tmpdir(), "spec-driven-qa-storage-"));
+    const storageStatePath = path.join(directory, "auth.json");
+    await writeFile(storageStatePath, JSON.stringify({
+      cookies: [{ name: "qa-session", value: "ok", domain: "127.0.0.1", path: "/", expires: -1, httpOnly: false, secure: false, sameSite: "Lax" }],
+      origins: [],
+    }));
+    const scenario = makeScenario("web");
+    const runbook = compileWebRunbook({ scenario, config: makeConfig(origin, scenario) });
+    const fresh = await runWebPlaywright({ request: makeRequest(runbook, "web"), runbook, playwrightModuleRoot: moduleRoot });
+    const preserved = await runWebPlaywright({ request: makeRequest(runbook, "web"), runbook, playwrightModuleRoot: moduleRoot, storageStatePath });
+    const stateText = (output) => output.evidence.find((item) => item.kind === "dom_state").record.text;
+    assert.equal(stateText(fresh), "anonymous");
+    assert.equal(stateText(preserved), "ready");
+    const command = (output) => output.evidence.find((item) => item.kind === "test_command").record;
+    assert.equal(command(fresh).storage_state, "fresh");
+    assert.equal(command(preserved).storage_state, "preserved");
+    const planned = preserved.evidence.filter((item) => item.kind === "dom_state");
+    assert.deepEqual(planned.map((item) => item.oracle_rule_id), ["observe-dom-state"]);
+    assert.equal(JSON.stringify(preserved).includes(directory), false);
+    assert.equal(JSON.stringify(preserved).includes("qa-session"), false);
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+});

@@ -135,6 +135,29 @@ node scripts/run-web-playwright.mjs \
 
 Runner는 Playwright package를 일반 Node module resolution으로 먼저 찾는다. 격리된 host가 별도 versioned module store를 쓰면 `--playwright-module-root <node_modules>`를 명시할 수 있다. CI는 어느 방식을 쓰든 Playwright version과 browser binary를 lock해야 한다.
 
+### 4.1 로그인 상태 (storage state)
+
+로그인이 필요한 화면은 runbook 안에서 로그인하지 않는다. Runbook, config, fixture에 계정이나 비밀번호를 넣는 것은 금지이고, runner도 로그인 action을 생성하지 않는다. 대신 project runtime이 runbook 밖에서 로그인 상태를 준비하고 runner에 파일 경로로 건넨다.
+
+```bash
+# 사람이 브라우저에서 로그인한 뒤 창을 닫으면 Playwright가 cookie와 storage를 파일로 저장한다.
+npx playwright codegen --save-storage=<repo 밖 경로>/auth.json http://127.0.0.1:3000/
+
+node scripts/run-web-playwright.mjs \
+  --request runner-request.json \
+  --runbook runbook.json \
+  --storage-state <repo 밖 경로>/auth.json \
+  --output runner-output.json
+```
+
+규칙:
+
+- `--storage-state`는 Playwright `storageState` 파일(cookie와 origin별 localStorage)의 경로다. 이 파일은 secret이므로 version control 밖에 두고, request·runbook·config·결과 어디에도 경로나 내용을 쓰지 않는다. 경로는 hash에 들어가지 않으므로 같은 runbook을 fresh context와 preserved context로 모두 재생할 수 있다.
+- Runner는 `test_command` evidence의 `storage_state`에 `preserved` 또는 `fresh`만 기록한다. 파일 이름, cookie 이름, 값, hash는 기록하지 않는다. (`session`이 들어간 key는 validator가 secret으로 간주해 거부하므로 쓰지 않는다.)
+- 파일이 없거나 읽을 수 없으면 browser를 시작하지 않고 `execution.status=not_started`와 `E_STORAGE_STATE_UNAVAILABLE` error를 돌려준다. Independent Judge는 이를 `blocked`로 판정한다.
+- 저장된 세션이 만료되면 서비스는 보통 로그인 화면으로 보낸다. 그러면 frozen locator가 해석되지 않아 step이 실패하고 `execution.status=partial`이 된다. 이것은 product failure가 아니라 환경 문제이므로, 호출자는 다시 로그인해 storage state를 새로 저장한 뒤 같은 runbook을 다시 재생한다. `fail` 판정의 근거로 쓰지 않는다.
+- Preserved session은 로그인 상태를 재현하지만 초기 데이터 상태를 보증하지 않는다. 사용자 데이터에 의존하는 oracle은 fixture로 데이터를 준비하거나 `storage_state`·`api_state` collector로 전제 상태를 함께 수집한다.
+
 ## 5. Evidence collector
 
 `evidence_collectors`는 각 oracle rule마다 정확히 하나 필요하다. `kind`는 scenario oracle의 `evidence_kind`와 같아야 하고 `after_step_id`는 frozen step을 가리켜야 한다.
@@ -156,7 +179,7 @@ Screenshot과 video는 Pass 증거가 아니다. P2 runner는 이를 수집하�
 
 ## 6. Runner output
 
-Runner는 `runner-output-v1`만 반환한다. Output에는 `verdict`, `oracle_results`, 성공 주장 문장을 넣으면 안 된다. 각 evidence record는 redaction 이후 canonical JSON hash를 포함한다.
+Runner는 `runner-output-v1`만 반환한다. Output에는 `verdict`, `oracle_results`, 성공 주장 문장을 넣으면 안 된다. 각 evidence record는 redaction 이후 canonical JSON hash를 포함한다. Evidence plan에 따라 수집한 evidence에는 `oracle_rule_id`를 붙여, 같은 step 뒤에 같은 kind로 수집한 record 두 개를 judge가 구분할 수 있게 한다.
 
 Step 실패는 `execution.status=partial` 또는 `not_started`, sanitized error, 미실행 step을 남긴다. Evidence 수집 실패는 product failure로 바꾸지 않고 `missing_evidence`와 `category=evidence` error로 분리한다. Independent Judge가 이 output과 명세를 대조해 여섯 verdict 중 하나를 결정한다.
 
