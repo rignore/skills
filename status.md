@@ -1,6 +1,6 @@
 # Status
 
-업데이트: 2026-10-13
+업데이트: 2026-10-14
 
 ## Completed
 
@@ -27,7 +27,10 @@
 - [x] Full PRD 기능 요구사항을 `EP-` Epic 단위로 통일하고 Epic 분리 기준·PRD와 티켓의 경계·이름 원칙·권장 작성 수준 반영
 - [x] `prd-flow`의 PRD 생성·Notion 투영·동기화·티켓화·wireframe 연계가 Epic 정본을 사용하도록 갱신하고 검증
 
-- [x] Spec-driven QA 스킬을 Claude Code·Codex·Gemini에 등록(2026-10-13). 공통 경로 `~/.agents/skills/prd-flow/spec-driven-qa`가 이 저장소의 `prd-flow/spec-driven-qa`를 가리키는 링크이고, 세 도구의 등록 위치가 그 공통 경로를 가리킨다. 그전에는 어느 도구에서도 스킬이 보이지 않아 2026-09-06 QA를 손으로 했다. 팀 배포용 저장소 반영은 하지 않았다.
+- [x] Spec-driven QA 스킬을 Claude Code·Codex·Gemini에 등록(2026-10-13). 공통 경로 `~/.agents/skills/prd-flow/spec-driven-qa`가 이 저장소의 `prd-flow/spec-driven-qa`를 가리키는 링크이고, 세 도구의 등록 위치가 그 공통 경로를 가리킨다. 그전에는 어느 도구에서도 스킬이 보이지 않아 2026-09-06 QA를 손으로 했다.
+- [x] 팀 배포(2026-10-14): 이 스킬을 사내 스킬 저장소 자동 동기화 목록과 팀 설치 스크립트에 넣었다. 회사 환경에 맞는 접속 주소·로그인 상태·기록 방법은 별도 환경 팩(`spec-driven-qa-pack-idb`, 사내 전용)이 정하고, 이 저장소의 본문에는 회사 내용을 넣지 않는다.
+- [x] 로그인 뒤 화면 검증(2026-10-14): `run-web-playwright.mjs`에 `--storage-state <파일>` 옵션을 추가했다. 사람이 로그인한 뒤 저장한 Playwright storageState 파일을 브라우저 컨텍스트에 넣어 재생하고, 결과에는 `storage_state: preserved|fresh`만 남긴다. 파일이 없으면 브라우저를 띄우기 전에 `not_started`로 끝나 판정이 `blocked`가 된다. 로컬 쿠키 서버로 fresh/preserved 재생을 비교하는 테스트를 넣었다.
+- [x] 같은 종류 증거 구분(2026-10-14): 한 단계 뒤에 같은 종류(`dom_state`) 증거를 두 규칙이 수집하면 judge가 후보 2개를 골라내지 못해 `not_evaluated`가 되던 결함을 고쳤다. 실행기가 계획된 증거에 `oracle_rule_id`를 붙이고 judge가 그 값으로 거른다. 표식이 없는 옛 결과는 종류로만 고르던 동작을 유지한다.
 - [x] Spec-driven QA `SKILL.md`에 요소의 부재와 숨김을 구분해 증명하는 규칙을 올림(2026-10-13, 커밋 전). 부재는 `locator_result`의 `/count equals 0`으로, 숨김은 `count` 1 이상과 `visible: false`를 함께 확인한다. `absent` 연산자는 JSON 경로가 없는지를 보므로 `/count`에는 쓰지 않는다.
 ## Pending
 
