@@ -2,6 +2,18 @@
 
 prd-flow 스킬 자동 배포 변경 이력 (기계 생성). 최신이 위.
 
+## 2026-10-14 12:38:02  ·  → rignore
+
+**prd-to-tickets**
+- 수정 `SKILL.md`
+
+**ticket-qa**
+- 수정 `SKILL.md`
+
+변경 요약: 2 files changed, 84 insertions(+), 24 deletions(-)
+
+---
+
 ## 2026-10-14 11:19:50  ·  → rignore
 
 **prd-to-tickets**
