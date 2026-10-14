@@ -174,7 +174,13 @@ function evidenceCandidates(rule, runbook, runnerOutput, evidenceById) {
   } else {
     ids = [...evidenceById.keys()];
   }
-  return ids.map((id) => evidenceById.get(id)).filter((item) => item?.kind === rule.evidence_kind);
+  const candidates = ids.map((id) => evidenceById.get(id)).filter((item) => item?.kind === rule.evidence_kind);
+  // A runner that tags planned evidence with the oracle rule it served lets two records of the same
+  // kind after the same step be told apart. Untagged outputs keep the kind-only selection.
+  if (candidates.some((item) => typeof item.oracle_rule_id === "string")) {
+    return candidates.filter((item) => item.oracle_rule_id === rule.id);
+  }
+  return candidates;
 }
 
 function contains(actual, expected) {

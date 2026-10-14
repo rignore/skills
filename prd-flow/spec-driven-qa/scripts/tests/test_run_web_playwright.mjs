@@ -201,8 +201,10 @@ test("replays with a preserved sign-in state and records only session_state", { 
     assert.equal(stateText(fresh), "anonymous");
     assert.equal(stateText(preserved), "ready");
     const command = (output) => output.evidence.find((item) => item.kind === "test_command").record;
-    assert.equal(command(fresh).session_state, "fresh");
-    assert.equal(command(preserved).session_state, "preserved");
+    assert.equal(command(fresh).storage_state, "fresh");
+    assert.equal(command(preserved).storage_state, "preserved");
+    const planned = preserved.evidence.filter((item) => item.kind === "dom_state");
+    assert.deepEqual(planned.map((item) => item.oracle_rule_id), ["observe-dom-state"]);
     assert.equal(JSON.stringify(preserved).includes(directory), false);
     assert.equal(JSON.stringify(preserved).includes("qa-session"), false);
   } finally {

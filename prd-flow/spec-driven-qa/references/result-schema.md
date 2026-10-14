@@ -201,6 +201,8 @@ Each evidence object has this minimum shape:
 
 Required fields are `id`, `kind`, `collected_at`, `producer`, `sha256`, and `redactions`. `redactions` is an array of JSON Pointers removed before hashing and MAY be empty. Exactly one of `record` or `artifact_ref` MUST appear.
 
+`oracle_rule_id` is optional. A runner sets it on evidence collected for a planned oracle rule. When any candidate for a rule carries this field, the judge selects only the candidates whose `oracle_rule_id` equals the rule identifier; this is how two records of the same kind collected after the same step are told apart. Evidence without the field is selected by kind and step as before.
+
 For `record`, `sha256` is calculated from the redacted record serialized as UTF-8 JSON with sorted object keys, compact separators, and preserved array order. For `artifact_ref`, it is the SHA-256 of the referenced file's raw bytes.
 
 `artifact_ref` points to a result-relative, integrity-checked text or JSON file. It MUST NOT be absolute, contain `..`, or encode file bytes inline.

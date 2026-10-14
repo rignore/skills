@@ -217,8 +217,8 @@ async function collectEvidence(page, plan, observations) {
   }
 }
 
-function evidenceItem(id, kind, record, collectedAt, redactions = []) {
-  return {
+function evidenceItem(id, kind, record, collectedAt, redactions = [], oracleRuleId = undefined) {
+  const item = {
     id,
     kind,
     collected_at: collectedAt,
@@ -227,6 +227,10 @@ function evidenceItem(id, kind, record, collectedAt, redactions = []) {
     redactions,
     record,
   };
+  // Planned evidence names the oracle rule it was collected for, so the judge can tell apart two
+  // records of the same kind collected after the same step.
+  if (oracleRuleId !== undefined) item.oracle_rule_id = oracleRuleId;
+  return item;
 }
 
 function safeRuntimeError(error, stepId) {
@@ -279,7 +283,7 @@ export async function runWebPlaywright({ request, runbook, playwrightModuleRoot 
     runbook_id: runbook.runbook_id,
     plan_sha256: runbook.integrity.plan_sha256,
     attempt: request.attempt,
-    session_state: storageState ? "preserved" : "fresh",
+    storage_state: storageState ? "preserved" : "fresh",
   };
   evidence.push(evidenceItem("runner-command", "test_command", commandRecord, startedAt));
   if (request.build !== null) {
@@ -345,7 +349,7 @@ export async function runWebPlaywright({ request, runbook, playwrightModuleRoot 
           try {
             const record = await collectEvidence(page, plan, observations);
             const id = `evidence-${String(evidence.length + 1).padStart(3, "0")}`;
-            evidence.push(evidenceItem(id, plan.evidence_kind, record, new Date().toISOString(), plan.evidence_kind === "storage_state" ? ["storage values replaced with SHA-256"] : []));
+            evidence.push(evidenceItem(id, plan.evidence_kind, record, new Date().toISOString(), plan.evidence_kind === "storage_state" ? ["storage values replaced with SHA-256"] : [], plan.oracle_rule_id));
             result.evidence_refs.push(id);
           } catch (error) {
             const evidenceError = { ...safeRuntimeError(error, step.id), code: "E_EVIDENCE_COLLECTION_FAILED", category: "evidence" };

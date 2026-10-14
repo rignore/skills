@@ -167,6 +167,28 @@ test("tampered evidence is rejected before judging", () => {
   assert.throws(() => judgeRunnerOutput({ ...input, decidedAt: DECIDED_AT }), (error) => error.code === "E_EVIDENCE_HASH_MISMATCH");
 });
 
+test("two rules of the same evidence kind after one step are told apart by oracle_rule_id", () => {
+  const input = fixture();
+  const secondRule = { ...input.scenario.oracle.rules[0], id: "state-rule-2", expectation_id: "state-expected-2", value: "pending" };
+  input.scenario.oracle.rules.push(secondRule);
+  input.scenario.expected.push({ ...input.scenario.expected[0], id: "state-expected-2", description: "The queued state is pending." });
+  input.runbook.evidence_plan.push({ ...input.runbook.evidence_plan[0], oracle_rule_id: "state-rule-2", sequence: 2 });
+  input.runbook.integrity.plan_sha256 = runbookPlanHash(input.runbook);
+  input.runbook.scenario_hash = sha256Json(input.scenario);
+  const first = input.runnerOutput.evidence.find((item) => item.kind === "accessibility_state");
+  first.oracle_rule_id = "state-rule";
+  const second = { ...first, id: "state-evidence-2", oracle_rule_id: "state-rule-2", record: { state: "pending" } };
+  second.sha256 = sha256Json(second.record);
+  input.runnerOutput.evidence.push(second);
+  input.runnerOutput.step_results[0].evidence_refs.push(second.id);
+  input.runnerOutput.plan_sha256 = input.runbook.integrity.plan_sha256;
+  input.runnerOutput.scenario_hash = input.runbook.scenario_hash;
+  input.runnerOutput.runbook_hash = sha256Json(input.runbook);
+  const result = judgeRunnerOutput({ ...input, decidedAt: DECIDED_AT });
+  assert.equal(result.verdict, "pass");
+  assert.deepEqual(result.oracle_results.map((item) => [item.oracle_id, item.status, item.evidence_refs]), [["state-rule", "matched", [first.id]], ["state-rule-2", "matched", [second.id]]]);
+});
+
 test("ambiguous evidence cannot be selected implicitly", () => {
   const rule = { evidence_kind: "accessibility_state", operator: "equals", actual_path: "/state", value: "saved" };
   const evidence = [{ id: "a", record: { state: "saved" } }, { id: "b", record: { state: "saved" } }];
