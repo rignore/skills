@@ -1,0 +1,21 @@
+{
+  "schema_version": "native-android-config-v1",
+  "provider": "native-android",
+  "provider_contract_version": "native-mcp-adapter-v1",
+  "implementation_version": "1.2.0",
+  "defaults_version": "native-android-defaults-v1",
+  "runbook_id": "p5-public-api-demos-interaction-r1",
+  "locators": {
+    "app_item": [{"by": "accessibility_id", "value": "App"}],
+    "action_bar_item": [{"by": "accessibility_id", "value": "Action Bar"}],
+    "accessibility_item": [{"by": "accessibility_id", "value": "Accessibility"}]
+  },
+  "timeouts_ms": {"launch": 30000, "wait_for": 15000, "tap": 10000, "back": 10000},
+  "hold_ms": 0,
+  "read_only_retry_policy": "never",
+  "read_only_max_attempts": 1,
+  "evidence_collectors": {
+    "app-list-present": {"kind": "locator_result", "after_step_id": "wait-app-list"},
+    "root-list-present": {"kind": "locator_result", "after_step_id": "wait-root-list"}
+  }
+}

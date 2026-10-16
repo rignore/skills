@@ -2,6 +2,31 @@
 
 prd-flow 스킬 자동 배포 변경 이력 (기계 생성). 최신이 위.
 
+## 2026-10-16 18:00:14  ·  → rignore
+
+**prd-to-tickets**
+- 수정 `SKILL.md`
+
+**spec-driven-qa**
+- 수정 `SKILL.md`
+- 추가 `examples/p5/android-interaction/android-config.json`
+- 추가 `examples/p5/android-interaction/scenario.json`
+- 추가 `examples/p5/android-interaction/spec.md`
+- 수정 `references/native-mcp-adapter.md`
+- 수정 `references/p5-pilot.md`
+- 수정 `scripts/compile-android-runbook.mjs`
+- 수정 `scripts/run-android-mcp.mjs`
+- 수정 `scripts/run-p5-pilot.mjs`
+- 수정 `scripts/tests/test_compile_android_runbook.mjs`
+- 수정 `scripts/tests/test_run_android_mcp.mjs`
+
+**ticket-qa**
+- 수정 `SKILL.md`
+
+변경 요약: 13 files changed, 429 insertions(+), 78 deletions(-)
+
+---
+
 ## 2026-10-14 12:38:02  ·  → rignore
 
 **prd-to-tickets**

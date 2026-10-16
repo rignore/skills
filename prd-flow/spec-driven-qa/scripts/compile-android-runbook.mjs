@@ -17,8 +17,13 @@ import {
   writeJson,
 } from "./web-provider-lib.mjs";
 
-const LOCATOR_PRIORITY = ["accessibility_id", "id"];
-const MUTATING_ACTIONS = new Set(["launch"]);
+const LOCATOR_PRIORITY = ["accessibility_id", "id", "text"];
+// launch, tap, fill, press_key, back can change app or backend state; scenario-schema forbids labeling them "none".
+const MUTATING_ACTIONS = new Set(["launch", "tap", "fill", "press_key", "back"]);
+const READ_ONLY_CAPABLE_ACTIONS = new Set(["wait_for", "swipe", "pause"]);
+const SUPPORTED_ACTIONS = new Set([...MUTATING_ACTIONS, ...READ_ONLY_CAPABLE_ACTIONS]);
+const NATIVE_KEYS = new Set(["BACK", "ENTER", "HOME", "TAB"]);
+const SWIPE_DIRECTIONS = new Set(["up", "down", "left", "right"]);
 const HASH = /^sha256:[0-9a-f]{64}$/;
 
 function validateScenario(scenario) {
@@ -37,12 +42,21 @@ function validateScenario(scenario) {
   if (scenario.review_status !== "approved" || scenario.execution?.enabled !== true) throw new ContractError("E_SCENARIO_NOT_EXECUTABLE", "Android compilation requires an approved, enabled scenario");
   if (!Array.isArray(scenario.source_refs) || scenario.source_refs.length === 0) throw new ContractError("E_SOURCE_REFS_REQUIRED", "source_refs must be non-empty", "$.source_refs");
   if (!Array.isArray(scenario.steps) || scenario.steps.length < 2 || scenario.steps[0]?.action !== "launch") {
-    throw new ContractError("E_ANDROID_MVP_STEPS_INVALID", "P3 requires a first launch step followed by at least one wait_for step", "$.steps");
+    throw new ContractError("E_ANDROID_MVP_STEPS_INVALID", "Android scenarios require a first launch step followed by at least one wait_for step", "$.steps");
   }
-  if (scenario.steps.filter((step) => step.action === "launch").length !== 1 || scenario.steps.slice(1).some((step) => step.action !== "wait_for")) {
-    throw new ContractError("E_ANDROID_ACTION_UNSUPPORTED", "P3 supports exactly one first launch and wait_for steps only", "$.steps");
+  scenario.steps.forEach((step, index) => {
+    if (!SUPPORTED_ACTIONS.has(step.action)) throw new ContractError("E_ANDROID_ACTION_UNSUPPORTED", `Android action ${step.action} is not supported`, `$.steps[${index}].action`);
+    if (MUTATING_ACTIONS.has(step.action) && step.mutation === "none") {
+      throw new ContractError("E_MUTATION_CLASSIFICATION_REQUIRED", `Android ${step.action} must be potential or confirmed`, `$.steps[${index}].mutation`);
+    }
+  });
+  if (scenario.steps.filter((step) => step.action === "launch").length !== 1) {
+    throw new ContractError("E_ANDROID_ACTION_UNSUPPORTED", "Android scenarios support exactly one launch, as the first step", "$.steps");
   }
-  if (scenario.steps[0].mutation === "none") throw new ContractError("E_MUTATION_CLASSIFICATION_REQUIRED", "Android launch must be potential or confirmed", "$.steps[0].mutation");
+  // A frozen runbook proves the final UI state with wait_for; an action-only tail would leave the last effect unobserved.
+  if (!scenario.steps.some((step) => step.action === "wait_for")) {
+    throw new ContractError("E_ANDROID_MVP_STEPS_INVALID", "Android scenarios require at least one wait_for step", "$.steps");
+  }
   const mutations = scenario.steps.filter((step) => MUTATING_ACTIONS.has(step.action) || step.mutation !== "none").map((step) => step.id);
   if (
     scenario.mutation_policy?.mode !== "require_approval"
@@ -82,45 +96,74 @@ function resolveLocator(config, reference, contractPath) {
       return cloneJson(locator);
     }
   }
-  throw new ContractError("E_LOCATOR_TYPE_UNSUPPORTED", "P3 locator must use accessibility_id or id", contractPath);
+  throw new ContractError("E_LOCATOR_TYPE_UNSUPPORTED", "Android locator must use accessibility_id, id, or text", contractPath);
+}
+
+function stepTimeout(config, action) {
+  const defaults = { launch: 30_000, wait_for: 10_000 };
+  const value = config.timeouts_ms?.[action] ?? defaults[action] ?? 10_000;
+  return requireInteger(value, 1, 120_000, "E_STEP_TIMEOUT_INVALID", `$.timeouts_ms.${action}`, `${action} timeout must be 1..120000`);
+}
+
+function readOnlyRetry(config) {
+  const retryPolicy = config.read_only_retry_policy ?? "safe";
+  if (!["safe", "never"].includes(retryPolicy)) throw new ContractError("E_STEP_RETRY_POLICY_INVALID", "read_only_retry_policy must be safe or never", "$.read_only_retry_policy");
+  const maxAttempts = retryPolicy === "safe" ? (config.read_only_max_attempts ?? 1) : 1;
+  requireInteger(maxAttempts, 1, 3, "E_STEP_MAX_ATTEMPTS_INVALID", "$.read_only_max_attempts", "read-only max attempts must be 1..3");
+  return { retryPolicy, maxAttempts };
+}
+
+function providerArgs(step, index, config) {
+  const args = step.arguments ?? {};
+  const hold = { hold_ms: config.hold_ms ?? 800 };
+  const locator = () => resolveLocator(config, args.control_ref, `$.steps[${index}].arguments.control_ref`);
+  switch (step.action) {
+    case "launch":
+    case "back":
+      return hold;
+    case "wait_for": {
+      const state = args.state ?? "present";
+      if (!["present", "absent"].includes(state)) throw new ContractError("E_WAIT_STATE_UNSUPPORTED", "Android wait_for state must be present or absent", `$.steps[${index}].arguments.state`);
+      return { locator: locator(), state, ...hold };
+    }
+    case "tap":
+      return { locator: locator(), ...hold };
+    case "fill": {
+      // The literal must come from the versioned project config so a scenario never carries entered values.
+      const value = config.fixture_values?.[args.fixture_value_ref];
+      if (typeof value !== "string") throw new ContractError("E_FIXTURE_VALUE_UNRESOLVED", "fixture_value_ref must resolve to a string", `$.steps[${index}].arguments.fixture_value_ref`);
+      return { locator: locator(), value, ...hold };
+    }
+    case "press_key":
+      if (!NATIVE_KEYS.has(args.key)) throw new ContractError("E_NATIVE_KEY_UNSUPPORTED", "press_key key must be BACK, ENTER, HOME, or TAB", `$.steps[${index}].arguments.key`);
+      return { key: args.key, ...hold };
+    case "swipe": {
+      if (!SWIPE_DIRECTIONS.has(args.direction)) throw new ContractError("E_SWIPE_DIRECTION_UNSUPPORTED", "swipe direction must be up, down, left, or right", `$.steps[${index}].arguments.direction`);
+      const percent = args.percent ?? 0.7;
+      if (typeof percent !== "number" || !(percent >= 0.1 && percent <= 1.0)) throw new ContractError("E_SWIPE_PERCENT_INVALID", "swipe percent must be 0.1..1.0", `$.steps[${index}].arguments.percent`);
+      return { direction: args.direction, percent, ...hold };
+    }
+    case "pause":
+      return { milliseconds: requireInteger(args.milliseconds, 0, 30_000, "E_PAUSE_INVALID", `$.steps[${index}].arguments.milliseconds`, "pause milliseconds must be 0..30000"), ...hold };
+    default:
+      throw new ContractError("E_ANDROID_ACTION_UNSUPPORTED", `Android action ${step.action} is not supported`, `$.steps[${index}].action`);
+  }
 }
 
 function compileSteps(scenario, config) {
   return scenario.steps.map((step, index) => {
     const mutation = step.mutation;
-    if (step.action === "launch") {
-      return {
-        id: step.id,
-        action: "launch",
-        description: step.description,
-        mutation,
-        arguments: cloneJson(step.arguments ?? null),
-        provider_args: { hold_ms: config.hold_ms ?? 800 },
-        timeout_ms: requireInteger(config.timeouts_ms?.launch ?? 30_000, 1, 120_000, "E_STEP_TIMEOUT_INVALID", "$.timeouts_ms.launch", "launch timeout must be 1..120000"),
-        retry_policy: "never",
-        max_attempts: 1,
-        provider_defaults_version: config.defaults_version,
-      };
-    }
-    const state = step.arguments?.state ?? "present";
-    if (!["present", "absent"].includes(state)) throw new ContractError("E_WAIT_STATE_UNSUPPORTED", "Android wait_for state must be present or absent", `$.steps[${index}].arguments.state`);
-    if (mutation !== "none") throw new ContractError("E_WAIT_MUTATION_INVALID", "P3 wait_for steps must be read-only", `$.steps[${index}].mutation`);
-    const retryPolicy = config.read_only_retry_policy ?? "safe";
-    if (!["safe", "never"].includes(retryPolicy)) throw new ContractError("E_STEP_RETRY_POLICY_INVALID", "read_only_retry_policy must be safe or never", "$.read_only_retry_policy");
-    const maxAttempts = retryPolicy === "safe" ? (config.read_only_max_attempts ?? 1) : 1;
-    requireInteger(maxAttempts, 1, 3, "E_STEP_MAX_ATTEMPTS_INVALID", "$.read_only_max_attempts", "read-only max attempts must be 1..3");
+    if (step.action === "wait_for" && mutation !== "none") throw new ContractError("E_WAIT_MUTATION_INVALID", "Android wait_for steps must be read-only", `$.steps[${index}].mutation`);
+    // Mutation-capable steps are never retried; read-only steps follow the configured read-only policy.
+    const { retryPolicy, maxAttempts } = mutation === "none" ? readOnlyRetry(config) : { retryPolicy: "never", maxAttempts: 1 };
     return {
       id: step.id,
-      action: "wait_for",
+      action: step.action,
       description: step.description,
       mutation,
       arguments: cloneJson(step.arguments ?? null),
-      provider_args: {
-        locator: resolveLocator(config, step.arguments?.control_ref, `$.steps[${index}].arguments.control_ref`),
-        state,
-        hold_ms: config.hold_ms ?? 800,
-      },
-      timeout_ms: requireInteger(config.timeouts_ms?.wait_for ?? 10_000, 1, 120_000, "E_STEP_TIMEOUT_INVALID", "$.timeouts_ms.wait_for", "wait_for timeout must be 1..120000"),
+      provider_args: providerArgs(step, index, config),
+      timeout_ms: stepTimeout(config, step.action),
       retry_policy: retryPolicy,
       max_attempts: maxAttempts,
       provider_defaults_version: config.defaults_version,
