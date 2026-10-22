@@ -37,8 +37,11 @@ PYTHONDONTWRITEBYTECODE=1 node scripts/prepare-native-mcp-binding.mjs \
   --package-id io.appium.android.apis \
   --binding-id p5-api-demos-emulator \
   --avd Pixel_7_API_35 \
+  --platform-version 15 \
   --output /absolute/path/to/native-binding.json
 ```
+
+`--platform-version` is required in practice: `result-v1` validation rejects a completed Android run whose `subject.native_runtime.os_version` is empty (`E_ANDROID_RUNTIME_FIELD_REQUIRED`). Read the value from the running Emulator with `adb shell getprop ro.build.version.release`.
 
 Run preflight before any app launch:
 
@@ -105,3 +108,9 @@ node scripts/run-p5-pilot.mjs \
 ```
 
 The Android command succeeds only when the external job completes, runtime evidence is contract-valid, and the independent judge emits `result-v1` with `verdict: pass`. The Pass oracle uses the structured `wait_for` locator result, not screenshots or video.
+
+## Public Android interaction pilot
+
+`examples/p5/android-interaction` exercises the adapter 1.2.0 interaction actions on the same ApiDemos APK: `launch`, `tap` on the root item `App`, `wait_for` the `Action Bar` item that exists only in the App list, `back`, and `wait_for` the root item `Accessibility`. The approval scope is `launch-app`, `tap-app`, `go-back`. Pass `--example android-interaction` to the `android-preflight` and `android-run` commands above; everything else is identical. Use a fresh Appium debug log for each run.
+
+Verified on 2026-10-15 with Pixel_7_API_35 (Android 15), Appium 3.6.0, UiAutomator2 8.1.2: every step completed, both oracles matched, the judge returned `pass`, and `result.json` passed `validate-contracts.py`.

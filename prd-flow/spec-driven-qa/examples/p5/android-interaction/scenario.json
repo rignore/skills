@@ -1,0 +1,44 @@
+{
+  "schema_version": "scenario-v1",
+  "id": "p5-public-api-demos-interaction",
+  "title": "Public ApiDemos tap and back navigation",
+  "source_refs": [
+    {"source_id": "public-api-demos-interaction-spec", "anchor_id": "api-demos-app-opens"},
+    {"source_id": "public-api-demos-interaction-spec", "anchor_id": "api-demos-back-returns"}
+  ],
+  "method": "native",
+  "preconditions": [
+    {
+      "id": "apk-binding-ready",
+      "description": "The version-pinned public ApiDemos APK matches the native runtime binding.",
+      "verification": "runner",
+      "check_ref": "native-binding-artifact-hash"
+    }
+  ],
+  "fixture": {"kind": "snapshot", "ref": "api-demos-v6.0.10-clean", "purpose": "baseline", "destructive": false, "environment": "isolated"},
+  "steps": [
+    {"id": "launch-app", "action": "launch", "description": "Launch the approved public test APK", "mutation": "potential"},
+    {"id": "tap-app", "action": "tap", "description": "Tap the App root list item", "mutation": "potential", "arguments": {"control_ref": "app_item"}},
+    {"id": "wait-app-list", "action": "wait_for", "description": "Wait for the Action Bar item in the App list", "mutation": "none", "arguments": {"control_ref": "action_bar_item", "state": "present"}},
+    {"id": "go-back", "action": "back", "description": "Press Android back", "mutation": "potential"},
+    {"id": "wait-root-list", "action": "wait_for", "description": "Wait for the Accessibility item in the root list", "mutation": "none", "arguments": {"control_ref": "accessibility_item", "state": "present"}}
+  ],
+  "expected": [
+    {"id": "app-list-visible", "description": "Action Bar is present after tapping App", "source_refs": [{"source_id": "public-api-demos-interaction-spec", "anchor_id": "api-demos-app-opens"}]},
+    {"id": "root-list-visible", "description": "Accessibility is present after Android back", "source_refs": [{"source_id": "public-api-demos-interaction-spec", "anchor_id": "api-demos-back-returns"}]}
+  ],
+  "oracle": {
+    "mode": "deterministic",
+    "rules": [
+      {"id": "app-list-present", "kind": "deterministic", "expectation_id": "app-list-visible", "evidence_kind": "locator_result", "operator": "equals", "actual_path": "/outcome", "value": "matched"},
+      {"id": "root-list-present", "kind": "deterministic", "expectation_id": "root-list-visible", "evidence_kind": "locator_result", "operator": "equals", "actual_path": "/outcome", "value": "matched"}
+    ]
+  },
+  "severity": "medium",
+  "spec_version": "p5-public-api-demos-interaction-v1",
+  "review_status": "approved",
+  "target": {"platform": "android", "device": "emulator", "artifact_type": "apk"},
+  "runner_provider": "native-android",
+  "mutation_policy": {"mode": "require_approval", "approval_scope": ["launch-app", "tap-app", "go-back"], "retry_policy": "never"},
+  "execution": {"enabled": true}
+}
