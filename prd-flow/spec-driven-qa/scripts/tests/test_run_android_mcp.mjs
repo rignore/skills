@@ -115,8 +115,11 @@ class FakeMcpClient {
     if (name === "get_native_video_scenario_schema") return { schema: NATIVE_SCHEMA };
     if (name === "register_native_app") return { artifact: { artifact_id: "apk-synthetic", platform: "android", format: "apk", sha256: this.binding.artifact.expected_sha256, size_bytes: 8 }, execution_support: { android: "available", ios: "contract_only" } };
     if (name === "get_native_runtime_status") return { backend: "native-android", ready: true, connected_devices: ["emulator-5554"], checks: [], appium_version: "2.0.0", uiautomator2_version: "4.0.0" };
-    if (name === "create_native_video_job") return { job_id: "job-synthetic", state: "DRAFT", plan_hash: this.providerPlanHash, artifacts: [] };
-    if (name === "preflight_video_job") return { job: { job_id: "job-synthetic", state: "AWAITING_APPROVAL", plan_hash: this.providerPlanHash }, preflight: { job_id: "job-synthetic", backend: "native-android", plan_hash: this.providerPlanHash, checks: [], runtime: {}, mutations: [{ step_id: "launch-app", title: "Launch", effects: ["potential_mutation"], retry_policy: "never" }], requires_approval: true, passed: true } };
+    if (name === "create_native_video_job") { this.scenario = args.scenario; return { job_id: "job-synthetic", state: "DRAFT", plan_hash: this.providerPlanHash, artifacts: [] }; }
+    if (name === "preflight_video_job") {
+      const mutations = this.scenario.steps.filter((step) => step.approval === "required").map((step) => ({ step_id: step.id, title: step.title, effects: step.effects, retry_policy: step.retry_policy }));
+      return { job: { job_id: "job-synthetic", state: "AWAITING_APPROVAL", plan_hash: this.providerPlanHash }, preflight: { job_id: "job-synthetic", backend: "native-android", plan_hash: this.providerPlanHash, checks: [], runtime: {}, mutations, requires_approval: true, passed: true } };
+    }
     if (name === "approve_video_job") return { job_id: "job-synthetic", state: "READY", plan_hash: this.providerPlanHash, artifacts: [] };
     if (name === "start_video_job") return { job_id: "job-synthetic", state: "QUEUED", plan_hash: this.providerPlanHash, artifacts: [] };
     if (name === "get_video_job") return {
@@ -128,10 +131,9 @@ class FakeMcpClient {
         external_effect_state: this.terminalState === "SUCCEEDED" ? "MUTATION_POSSIBLE" : "UNTOUCHED",
         review_required: false,
         error: this.terminalState === "SUCCEEDED" ? null : "synthetic provider failure",
-        steps: this.terminalState === "SUCCEEDED" ? [
-          { step_id: "launch-app", state: "passed", started_at: "2026-08-02T00:00:00Z", finished_at: "2026-08-02T00:00:01Z", error: null },
-          { step_id: "wait-ready", state: "passed", started_at: "2026-08-02T00:00:01Z", finished_at: "2026-08-02T00:00:02Z", error: null },
-        ] : [],
+        steps: this.terminalState === "SUCCEEDED"
+          ? this.scenario.steps.map((step) => ({ step_id: step.id, state: "passed", started_at: "2026-08-02T00:00:01Z", finished_at: "2026-08-02T00:00:02Z", error: null }))
+          : [],
       },
     };
     throw new Error(`unexpected tool ${name}`);
@@ -293,7 +295,7 @@ test("approved execution replays MCP lifecycle and returns evidence without verd
   const fake = new FakeMcpClient(binding);
   const output = await runAndroidMcp({ request: requestFor(runbook, binding), runbook, binding, clientFactory: async () => fake });
   assert.equal(output.execution.status, "completed");
-  assert.equal(output.execution.runner_version, "1.1.0");
+  assert.equal(output.execution.runner_version, "1.2.0");
   assert.equal("verdict" in output, false);
   assert.equal("oracle_results" in output, false);
   assert.deepEqual(output.errors, []);
@@ -372,4 +374,63 @@ test("unsupported native target returns not_started without calling MCP", async 
   assert.equal(output.execution.status, "not_started");
   assert.match(output.unsupported_reason, /Emulator and APK/);
   assert.equal(clientCreated, false);
+});
+
+function interactionScenario() {
+  const base = androidScenario();
+  return {
+    ...base,
+    id: "android-name-entry",
+    steps: [
+      base.steps[0],
+      { id: "fill-name", action: "fill", description: "Enter the synthetic name", mutation: "potential", arguments: { control_ref: "name_input", fixture_value_ref: "synthetic_name" } },
+      { id: "press-enter", action: "press_key", description: "Submit with Enter", mutation: "potential", arguments: { key: "ENTER" } },
+      { id: "scroll", action: "swipe", description: "Scroll the next screen", mutation: "none", arguments: { direction: "up", percent: 0.5 } },
+      { id: "settle", action: "pause", description: "Let the transition settle", mutation: "none", arguments: { milliseconds: 300 } },
+      { id: "tap-next", action: "tap", description: "Tap next", mutation: "potential", arguments: { control_ref: "next_button" } },
+      { id: "go-back", action: "back", description: "Android back", mutation: "potential" },
+      base.steps[1],
+    ],
+    mutation_policy: { mode: "require_approval", approval_scope: ["launch-app", "fill-name", "press-enter", "tap-next", "go-back"], retry_policy: "never" },
+  };
+}
+
+function interactionConfig() {
+  return {
+    ...androidConfig(),
+    runbook_id: "android-name-entry-r1",
+    locators: {
+      ...androidConfig().locators,
+      name_input: [{ by: "id", value: "org.example.qa:id/name" }],
+      next_button: [{ by: "text", value: "Next" }],
+    },
+    fixture_values: { synthetic_name: "Hong Gildong" },
+  };
+}
+
+test("maps interaction steps to Native Scenario actions with approval on every mutation", async () => {
+  const { binding } = await fixture();
+  const scenario = interactionScenario();
+  const preflightRunbook = compileAndroidRunbook({ scenario, config: interactionConfig(), allowUnapprovedPreflight: true });
+  const approval = { ...approvalFor(preflightRunbook, PROVIDER_PLAN_HASH, binding), approved_step_ids: scenario.mutation_policy.approval_scope };
+  const runbook = compileAndroidRunbook({ scenario, config: interactionConfig(), approval });
+  const fake = new FakeMcpClient(binding);
+  const output = await runAndroidMcp({ request: requestFor(runbook, binding), runbook, binding, clientFactory: async () => fake });
+  assert.equal(output.execution.status, "completed");
+  assert.deepEqual(output.errors, []);
+  const created = fake.calls.find(([name]) => name === "create_native_video_job")[1].scenario;
+  assert.deepEqual(created.steps.map((step) => step.action), [
+    { type: "launch" },
+    { type: "fill", target: { by: "id", value: "org.example.qa:id/name" }, value: "Hong Gildong" },
+    { type: "press_key", key: "ENTER" },
+    { type: "swipe", direction: "up", percent: 0.5 },
+    { type: "pause", milliseconds: 300 },
+    { type: "tap", target: { by: "text", value: "Next" } },
+    { type: "back" },
+    { type: "wait_for", target: { by: "accessibility_id", value: "qa-ready" }, state: "present" },
+  ]);
+  assert.deepEqual(created.steps.filter((step) => step.approval === "required").map((step) => step.id), scenario.mutation_policy.approval_scope);
+  assert.deepEqual(created.steps.filter((step) => step.approval === "none").map((step) => step.effects), [["local_read"], ["local_read"], ["local_read"]]);
+  const approved = fake.calls.find(([name]) => name === "approve_video_job")[1];
+  assert.deepEqual(approved.approved_step_ids, scenario.mutation_policy.approval_scope);
 });

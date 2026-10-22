@@ -701,7 +701,15 @@ Adapter는 위 frozen 값을 다시 해석하거나 보완하지 않고 아래 N
 
 ## 14. P3(Android MCP adapter) MVP 구현과 실행
 
-P3(Android MCP adapter) MVP compiler는 action 범위를 첫 `launch` 한 건과 하나 이상의 `wait_for present|absent`로 제한한다. Locator는 `accessibility_id`를 먼저 선택하고 없으면 Android resource `id`를 선택한다. 다른 action과 `text`, `class_name`, `xpath` locator는 문서 계약에는 남아 있지만 후속 확장 전까지 compiler가 거부한다.
+Compiler(adapter 1.2.0)는 7절 표의 8가지 action을 모두 컴파일한다. 규칙은 5가지다.
+
+- 첫 step은 정확히 한 번의 `launch`이고, 시나리오에 `wait_for`가 하나 이상 있어야 한다. 마지막 조작의 결과를 `wait_for`로 관찰하지 않으면 그 조작이 성공했다는 증거가 없기 때문이다.
+- `launch`, `tap`, `fill`, `press_key`, `back`은 `mutation`이 `potential` 또는 `confirmed`여야 한다. `none`이면 `E_MUTATION_CLASSIFICATION_REQUIRED`로 거부한다. 이 step은 `retry_policy: never`, `max_attempts: 1`로 고정한다.
+- `swipe`와 `pause`는 읽기 전용(`none`)으로 둘 수 있고, 그때는 config의 `read_only_retry_policy`를 따른다. 외부 MCP가 모든 step에 `max_attempts: 1`을 요구하므로 `read_only_max_attempts`는 1로 둔다.
+- `fill.value`는 시나리오에 적지 않는다. 시나리오는 `arguments.fixture_value_ref`만 갖고, compiler가 versioned project config의 `fixture_values`에서 문자열을 꺼내 고정한다. 비민감 합성 값만 넣는다.
+- Locator는 `accessibility_id`, Android resource `id`, `text` 순으로 첫 후보 하나를 고른다. `class_name`과 `xpath`는 화면 구조가 바뀌면 다른 요소를 가리키기 쉬워 compiler가 거부한다.
+
+`locator_result` 증거는 지금도 `wait_for` 뒤에서만 수집한다. `tap`이나 `fill`의 step 성공은 그 조작이 실행됐다는 기록일 뿐, 화면이 기대한 상태가 됐다는 증거가 아니다.
 
 Binding은 core가 아닌 project runtime이 작성한다. 실제 APK path, package ID, AVD, Emulator serial, MCP executable path, runtime source root는 binding에만 둔다.
 

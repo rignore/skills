@@ -24,7 +24,7 @@ import {
   writeJson,
 } from "./web-provider-lib.mjs";
 
-const ADAPTER_VERSION = "1.1.0";
+const ADAPTER_VERSION = "1.2.0";
 const HASH = /^sha256:[0-9a-f]{64}$/;
 const REQUIRED_TOOLS = [
   "get_native_video_scenario_schema", "register_native_app", "get_native_runtime_status",
@@ -271,7 +271,23 @@ function validateRequest(request, runbook, binding, preflightOnly) {
   if (runbook.fixture?.destructive === true && runbook.fixture.environment !== "isolated") throw new ContractError("E_FIXTURE_ISOLATION_REQUIRED", "destructive fixture must be isolated");
 }
 
-function toNativeScenario(runbook, binding, artifactId) {
+// Mapping table: references/native-mcp-adapter.md section 7. Only the frozen literal provider_args reach the provider.
+function nativeAction(step) {
+  const args = step.provider_args;
+  switch (step.action) {
+    case "launch": return { type: "launch" };
+    case "back": return { type: "back" };
+    case "wait_for": return { type: "wait_for", target: cloneJson(args.locator), state: args.state };
+    case "tap": return { type: "tap", target: cloneJson(args.locator) };
+    case "fill": return { type: "fill", target: cloneJson(args.locator), value: args.value };
+    case "press_key": return { type: "press_key", key: args.key };
+    case "swipe": return { type: "swipe", direction: args.direction, percent: args.percent };
+    case "pause": return { type: "pause", milliseconds: args.milliseconds };
+    default: throw new ContractError("E_ANDROID_ACTION_UNSUPPORTED", `Android action ${step.action} is not supported`, `$.steps.${step.id}.action`);
+  }
+}
+
+export function toNativeScenario(runbook, binding, artifactId) {
   const device = Object.fromEntries(Object.entries(binding.device).filter(([key]) => key !== "reset_policy"));
   return {
     schema_version: 1,
@@ -283,9 +299,7 @@ function toNativeScenario(runbook, binding, artifactId) {
     reset_policy: binding.device.reset_policy,
     max_duration_seconds: binding.execution.max_duration_seconds,
     steps: runbook.steps.map((step) => {
-      const action = step.action === "launch"
-        ? { type: "launch" }
-        : { type: "wait_for", target: cloneJson(step.provider_args.locator), state: step.provider_args.state };
+      const action = nativeAction(step);
       return {
         id: step.id,
         title: step.description,

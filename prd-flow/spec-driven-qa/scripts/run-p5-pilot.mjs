@@ -22,6 +22,7 @@ import {
 } from "./web-provider-lib.mjs";
 
 const EXAMPLES_ROOT = path.resolve(import.meta.dirname, "../examples/p5");
+const ANDROID_EXAMPLES = new Set(["android", "android-interaction"]);
 
 async function loadInputs(name) {
   const root = path.join(EXAMPLES_ROOT, name);
@@ -87,12 +88,14 @@ export async function runWebPilot({ outputDir, playwrightModuleRoot }) {
   return report;
 }
 
-export async function runAndroidPilot({ mode, outputDir, binding, approval = null, appiumLogPath = null }) {
-  const { bundle, scenario, config } = await loadInputs("android");
+export async function runAndroidPilot({ mode, outputDir, binding, approval = null, appiumLogPath = null, example = "android" }) {
+  if (!ANDROID_EXAMPLES.has(example)) throw new ContractError("E_CLI_USAGE", "--example must be android or android-interaction");
+  const { bundle, scenario, config } = await loadInputs(example);
+  const runSuffix = example === "android" ? "" : `-${example}`;
   const preflightOnly = mode === "android-preflight";
   const runbook = compileAndroidRunbook({ scenario, config, approval, allowUnapprovedPreflight: preflightOnly });
   const request = runnerRequest({
-    runId: preflightOnly ? "p5-api-demos-android-preflight" : "p5-api-demos-android-run",
+    runId: preflightOnly ? `p5-api-demos-android-preflight${runSuffix}` : `p5-api-demos-android-run${runSuffix}`,
     runbook,
     binding,
     build: { ref: "appium/android-apidemos@v6.0.10", sha256: binding.artifact.expected_sha256 },
@@ -176,6 +179,7 @@ async function main() {
     "--binding": { name: "binding" },
     "--approval": { name: "approval" },
     "--appium-log": { name: "appium_log" },
+    "--example": { name: "example" },
   });
   let report;
   if (options.pilot === "web") {
@@ -191,6 +195,7 @@ async function main() {
       binding: await readJson(options.binding),
       approval: options.approval ? await readJson(options.approval) : null,
       appiumLogPath: options.appium_log ? path.resolve(options.appium_log) : null,
+      example: options.example ?? "android",
     });
   } else if (options.pilot === "android-finalize") {
     if (options.binding || options.approval || options.playwright_module_root || !options.appium_log) throw new ContractError("E_CLI_USAGE", "Android finalize requires only --appium-log and an existing --output-dir");
